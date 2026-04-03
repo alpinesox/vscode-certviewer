@@ -168,16 +168,17 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
 
 }
 
-// Minimal CRL issuer extraction — finds first readable string after the outer SEQUENCE
+// Minimal CRL issuer extraction — scans DER bytes for the first string-type value
 function extractCrlIssuer(der: Buffer): string {
   try {
-    const hex = der.toString("hex");
-    // Look for PrintableString or UTF8String patterns that look like DN values
-    const cnMatch = hex.match(/(?:0c|13)([0-9a-f]{2})((?:[0-9a-f]{2})+)/);
-    if (cnMatch) {
-      const len = parseInt(cnMatch[1], 16);
-      const valueHex = cnMatch[2].slice(0, len * 2);
-      return Buffer.from(valueHex, "hex").toString("utf8");
+    // Walk DER bytes looking for UTF8String (0x0c) or PrintableString (0x13) tags
+    for (let i = 0; i < der.length - 2; i++) {
+      const tag = der[i];
+      if (tag !== 0x0c && tag !== 0x13) continue;
+      const len = der[i + 1];
+      if (len >= 0x80 || i + 2 + len > der.length) continue;
+      const str = der.slice(i + 2, i + 2 + len).toString("utf8");
+      if (str.length > 0 && /^[\x20-\x7e\u00a0-\ufffd]+$/.test(str)) return str;
     }
   } catch { /* ignore */ }
   return "Unknown";

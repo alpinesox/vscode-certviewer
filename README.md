@@ -21,10 +21,8 @@
 |-----------|--------|
 | `.pem` | PEM (text, single or chain) |
 | `.cer` `.crt` | DER or PEM certificate |
-| `.der` | DER binary |
+| `.der` | DER binary certificate |
 | `.p7b` `.p7c` `.p7` | PKCS#7 certificate bundle |
-| `.pfx` `.p12` | PKCS#12 (metadata only) |
-| `.csr` `.req` | Certificate Signing Request |
 | `.crl` | Certificate Revocation List |
 
 ---
@@ -32,9 +30,8 @@
 ## Usage
 
 1. Open any supported certificate file — CertView opens automatically
-2. Navigate between **Summary**, **Details**, and **Raw** tabs
-3. Use the **Certificates** panel in the Explorer sidebar to browse all certs in your workspace
-4. Right-click a cert file → **CertView: Open Certificate** to force the custom viewer
+2. Use the **Certificates** panel in the Explorer sidebar to browse all cert files in your workspace
+3. Right-click a cert file → **CertView: Open Certificate** to force the custom viewer
 
 ---
 
@@ -57,7 +54,6 @@
 
 ## Known Issues
 
-- PKCS#12 (`.pfx`/`.p12`) files require no password for metadata display; encrypted private keys are not shown
 - Very large CRL files (>10 MB) may take a moment to parse
 
 ---
@@ -67,7 +63,7 @@
 ### 0.1.0
 
 Initial release:
-- Custom editor for all major certificate formats
+- Custom editor for PEM, DER, CRL, and PKCS#7 certificate formats
 - Certificate Explorer sidebar
 - Expiry warnings and fingerprint copy
 - PEM syntax highlighting
