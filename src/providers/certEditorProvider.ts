@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { execFileSync } from "child_process";
 import { parseCertificateFile } from "../parsers/certParser";
 import { parseCsrFile } from "../parsers/csrParser";
 import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
@@ -178,41 +177,12 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
   }
 
   private async parsePkcs12(uri: vscode.Uri, _raw: Uint8Array): Promise<ParsedDocument> {
-    const password = await vscode.window.showInputBox({
-      prompt: `Password for ${path.basename(uri.fsPath)} (leave empty if none)`,
-      password: true,
-      placeHolder: "PKCS#12 password",
-    });
-
-    if (password === undefined) {
-      // User cancelled
-      return { type: "error", message: "PKCS#12 password prompt cancelled." };
-    }
-
-    // Use openssl CLI to extract certificates from PKCS#12
-    try {
-      const args = [
-        "pkcs12",
-        "-in", uri.fsPath,
-        "-passin", `pass:${password ?? ""}`,
-        "-nokeys",
-        "-clcerts",
-      ];
-
-      const pemOutput = execFileSync("openssl", args, {
-        encoding: "utf8",
-        timeout: 10000,
-      });
-
-      return { type: "certificates", items: parseCertificateFile(pemOutput) };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return {
-        type: "error",
-        message: "Failed to read PKCS#12 file",
-        detail: "openssl must be available on your PATH.\n\n" + msg,
-      };
-    }
+    const filename = path.basename(uri.fsPath);
+    return {
+      type: "error",
+      message: `PKCS#12 files cannot be parsed directly`,
+      detail: `To inspect "${filename}", convert it first using openssl:\n\nopenssl pkcs12 -in "${filename}" -nokeys -clcerts -out certs.pem\n\nThen open certs.pem with CertView.`,
+    };
   }
 }
 
