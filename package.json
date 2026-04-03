@@ -4,6 +4,10 @@
   "description": "View and inspect X.509 certificates directly in VSCode",
   "version": "0.1.0",
   "publisher": "juanchi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JuanTorchia/certificate-viewer-open-vscode.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
