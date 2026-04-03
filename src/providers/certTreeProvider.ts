@@ -2,6 +2,9 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { CertificateInfo, getCertificateStatus, getDaysUntilExpiry } from "../models/certificate";
 import { getCertDisplayName } from "../utils/formatters";
+import { parseCertificateFile } from "../parsers/certParser";
+import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
+import { isDerBuffer } from "../parsers/pemParser";
 
 type TreeItemType = "file" | "cert" | "field";
 
@@ -110,8 +113,17 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
         return [item];
       }
 
-      // Parsing disabled in this diagnostic build
-      const certs: CertificateInfo[] = [];
+      let certs: CertificateInfo[];
+      if ([".p7b", ".p7c", ".p7"].includes(ext)) {
+        const text = Buffer.from(raw).toString("utf-8");
+        const pems = extractCertsFromPkcs7(text);
+        certs = pems.flatMap(pem => parseCertificateFile(pem));
+      } else if (ext === ".der" || isDerBuffer(raw)) {
+        certs = parseCertificateFile(raw);
+      } else {
+        const text = Buffer.from(raw).toString("utf-8");
+        certs = parseCertificateFile(text);
+      }
       return certs.map((cert, idx) => {
         const displayName = getCertDisplayName(cert.subject, cert.serialNumber);
         const status = getCertificateStatus(cert);

@@ -5,9 +5,6 @@
 src/**
 out/test/**
 out/**/*.map
-out/parsers/csrParser.js
-out/parsers/pkcs7Parser.js
-out/parsers/certParser.js
 testcerts/**
 node_modules/**
 images/icon.svg

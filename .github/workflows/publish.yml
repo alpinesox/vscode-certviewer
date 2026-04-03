@@ -37,7 +37,10 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Test
+      - name: Unit Tests (no Electron)
+        run: node ./out/test/unit/index.js
+
+      - name: Integration Tests (Electron)
         uses: coactions/setup-xvfb@v1
         with:
           run: pnpm test

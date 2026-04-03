@@ -20,7 +20,7 @@ export function formatDate(date: Date): string {
  */
 export function formatRelativeExpiry(date: Date): string {
   const diffMs = date.getTime() - Date.now();
-  const absDays = Math.abs(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  const absDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
   const expired = diffMs < 0;
 
   if (absDays === 0) return expired ? "Expired today" : "Expires today";

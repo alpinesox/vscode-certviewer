@@ -32,14 +32,6 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand("vscode.openWith", target, CertEditorProvider.viewType);
     })
   );
-
-  // Command: Copy fingerprint (can be triggered programmatically)
-  context.subscriptions.push(
-    vscode.commands.registerCommand("certview.copyFingerprint", async (fingerprint: string) => {
-      await vscode.env.clipboard.writeText(fingerprint);
-      vscode.window.showInformationMessage("Fingerprint copied to clipboard.");
-    })
-  );
 }
 
 export function deactivate(): void {

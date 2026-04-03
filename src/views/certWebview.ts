@@ -23,7 +23,6 @@ export function buildWebviewHtml(
     content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>CertView</title>
-  <div id="__cv" data-payload="${escapeAttr(JSON.stringify(payload))}" style="display:none"></div>
   <style nonce="${nonce}">
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);
@@ -74,6 +73,7 @@ export function buildWebviewHtml(
   </style>
 </head>
 <body>
+  <div id="__cv" data-payload="${escapeAttr(JSON.stringify(payload))}" style="display:none"></div>
   <div id="app"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

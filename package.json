@@ -1,9 +1,9 @@
 {
   "name": "certview",
-  "displayName": "CertView",
-  "description": "View and inspect X.509 certificates directly in VSCode",
-  "version": "0.1.4",
-  "publisher": "juanchi",
+  "displayName": "X509 Certificate Utility",
+  "description": "A developer tool for inspecting X509 certificate files.",
+  "version": "0.2.0",
+  "publisher": "gmm",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -13,12 +13,8 @@
     "vscode": "^1.85.0"
   },
   "icon": "images/icon.png",
-  "galleryBanner": {
-    "color": "#0d2137",
-    "theme": "dark"
-  },
   "categories": ["Other", "Visualization"],
-  "keywords": ["certificate", "x509", "pem", "cer", "crt", "der"],
+  "keywords": ["utility", "certificates", "devtools"],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -26,16 +22,12 @@
       {
         "command": "certview.openCertificate",
         "title": "CertView: Open Certificate",
-        "icon": "$(lock)"
+        "icon": "$(file)"
       },
       {
         "command": "certview.refreshTree",
         "title": "CertView: Refresh",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "certview.copyFingerprint",
-        "title": "CertView: Copy Fingerprint"
       }
     ],
     "customEditors": [
@@ -43,13 +35,32 @@
         "viewType": "certview.certEditor",
         "displayName": "Certificate Viewer",
         "selector": [
-          { "filenamePattern": "*.pem" },
-          { "filenamePattern": "*.cer" },
-          { "filenamePattern": "*.crt" },
-          { "filenamePattern": "*.der" },
-          { "filenamePattern": "*.crl" }
+          {
+            "filenamePattern": "*.pem"
+          },
+          {
+            "filenamePattern": "*.cer"
+          },
+          {
+            "filenamePattern": "*.crt"
+          },
+          {
+            "filenamePattern": "*.der"
+          },
+          {
+            "filenamePattern": "*.crl"
+          },
+          {
+            "filenamePattern": "*.p7b"
+          },
+          {
+            "filenamePattern": "*.p7c"
+          },
+          {
+            "filenamePattern": "*.p7"
+          }
         ],
-        "priority": "option"
+        "priority": "default"
       }
     ],
     "views": {
@@ -57,7 +68,7 @@
         {
           "id": "certview.certExplorer",
           "name": "Certificates",
-          "icon": "$(lock)",
+          "icon": "$(shield)",
           "contextualTitle": "Certificate Explorer"
         }
       ]
@@ -73,7 +84,7 @@
       "editor/context": [
         {
           "command": "certview.openCertificate",
-          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl)$/",
+          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl|p7b|p7c|p7)$/",
           "group": "certview"
         }
       ]
@@ -81,8 +92,13 @@
     "languages": [
       {
         "id": "pem",
-        "aliases": ["PEM", "Certificate"],
-        "extensions": [".pem"],
+        "aliases": [
+          "PEM",
+          "Certificate"
+        ],
+        "extensions": [
+          ".pem"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -108,7 +124,11 @@
         },
         "certview.defaultView": {
           "type": "string",
-          "enum": ["summary", "details", "raw"],
+          "enum": [
+            "summary",
+            "details",
+            "raw"
+          ],
           "default": "summary",
           "description": "Default view when opening a certificate"
         }
@@ -117,9 +137,10 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && node -e \"require('fs').cpSync('src/test/fixtures','out/test/fixtures',{recursive:true,force:true})\"",
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm compile",
+    "test:unit": "pnpm compile && node ./out/test/unit/index.js",
     "test": "node ./out/test/runTest.js",
     "lint": "eslint src --ext ts",
     "package": "vsce package"
@@ -131,6 +152,7 @@
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
     "typescript": "^5.3.3"
