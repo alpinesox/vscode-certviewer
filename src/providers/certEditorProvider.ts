@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { parseCertificateFile } from "../parsers/certParser";
 import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "../parsers/pemParser";
 import { ParsedDocument } from "../models/parsedDocument";
 import { buildWebviewHtml } from "../views/certWebview";
@@ -82,8 +81,8 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
           return this.parseCrlPem(text);
         }
 
-        // Default: CERTIFICATE (or try anyway)
-        return { type: "certificates", items: parseCertificateFile(text) };
+        // Default: CERTIFICATE
+        return { type: "error", message: "Certificate parsing not available in this build.", detail: "" };
       }
 
       return this.parseDer(raw);
@@ -99,13 +98,8 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
     }
   }
 
-  private parseDer(raw: Uint8Array): ParsedDocument {
-    // DER could be a certificate, CRL, CSR — try certificate first
-    try {
-      return { type: "certificates", items: parseCertificateFile(raw) };
-    } catch {
-      return { type: "error", message: "Unable to parse DER file.", detail: "Not a recognized ASN.1 structure (certificate, CRL, or CSR)." };
-    }
+  private parseDer(_raw: Uint8Array): ParsedDocument {
+    return { type: "error", message: "DER parsing not available in this build.", detail: "" };
   }
 
   private parseCrlPem(text: string): ParsedDocument {

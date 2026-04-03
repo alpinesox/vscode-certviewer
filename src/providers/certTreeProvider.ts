@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { parseCertificateFile } from "../parsers/certParser";
-import { isPemContent, isDerBuffer } from "../parsers/pemParser";
 import { CertificateInfo, getCertificateStatus, getDaysUntilExpiry } from "../models/certificate";
 import { getCertDisplayName } from "../utils/formatters";
 
@@ -112,10 +110,8 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
         return [item];
       }
 
-      const text = Buffer.from(raw).toString("utf-8");
-      const content = isPemContent(text) ? text : (isDerBuffer(raw) ? raw : text);
-      const certs = parseCertificateFile(content);
-
+      // Parsing disabled in this diagnostic build
+      const certs: CertificateInfo[] = [];
       return certs.map((cert, idx) => {
         const displayName = getCertDisplayName(cert.subject, cert.serialNumber);
         const status = getCertificateStatus(cert);

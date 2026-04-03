@@ -2,7 +2,7 @@
   "name": "certview",
   "displayName": "CertView",
   "description": "View and inspect X.509 certificates directly in VSCode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "juanchi",
   "license": "MIT",
   "repository": {
