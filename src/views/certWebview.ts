@@ -203,7 +203,13 @@ function buildCrlBody(doc: { issuer: string; thisUpdate: string; nextUpdate: str
   <div class="row"><span class="lbl">Next Update</span><span class="val">${esc(doc.nextUpdate)}</span></div>
   ${doc.revokedCount >= 0 ? `<div class="row"><span class="lbl">Revoked Entries</span><span class="val">${doc.revokedCount}</span></div>` : ""}
 </div></details>
-<button class="link-btn" onclick="acquireVsCodeApi().postMessage({command:'openRaw'})">Open raw ↗</button>`;
+<button class="link-btn" id="openRawBtn">Open raw ↗</button>
+<script nonce="{{NONCE}}">
+const vscode = acquireVsCodeApi();
+document.getElementById('openRawBtn').addEventListener('click', function() {
+  vscode.postMessage({command: 'openRaw'});
+});
+</script>`;
 }
 
 // ── Error view ────────────────────────────────────────────────────────────────

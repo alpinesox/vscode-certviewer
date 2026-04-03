@@ -141,9 +141,5 @@
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
     "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "asn1js": "^3.0.5",
-    "pkijs": "^3.2.4"
   }
 }
