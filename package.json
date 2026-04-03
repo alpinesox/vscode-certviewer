@@ -47,9 +47,6 @@
           { "filenamePattern": "*.cer" },
           { "filenamePattern": "*.crt" },
           { "filenamePattern": "*.der" },
-          { "filenamePattern": "*.p7b" },
-          { "filenamePattern": "*.p7c" },
-          { "filenamePattern": "*.p7" },
           { "filenamePattern": "*.crl" }
         ],
         "priority": "default"
@@ -76,7 +73,7 @@
       "editor/context": [
         {
           "command": "certview.openCertificate",
-          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|p7b|p7c|p7|crl)$/",
+          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl)$/",
           "group": "certview"
         }
       ]

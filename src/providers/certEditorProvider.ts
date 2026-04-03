@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { parseCertificateFile } from "../parsers/certParser";
-import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
 import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "../parsers/pemParser";
 import { ParsedDocument } from "../models/parsedDocument";
 import { buildWebviewHtml } from "../views/certWebview";
@@ -79,10 +78,6 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
 
         const format = detectFormat(text, ext);
 
-        if (format === "PKCS7") {
-          return this.parsePkcs7Pem(text);
-        }
-
         if (format === "X509 CRL") {
           return this.parseCrlPem(text);
         }
@@ -91,10 +86,6 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
         return { type: "certificates", items: parseCertificateFile(text) };
       }
 
-      // Binary DER — could be a plain cert or a DER-encoded PKCS#7
-      if (ext === ".p7b" || ext === ".p7c" || ext === ".p7") {
-        return this.parsePkcs7Der(raw);
-      }
       return this.parseDer(raw);
 
     } catch (err) {
@@ -115,36 +106,6 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
     } catch {
       return { type: "error", message: "Unable to parse DER file.", detail: "Not a recognized ASN.1 structure (certificate, CRL, or CSR)." };
     }
-  }
-
-  private parsePkcs7Pem(text: string): ParsedDocument {
-    const pems = extractCertsFromPkcs7(text);
-
-    if (pems.length === 0) {
-      return {
-        type: "error",
-        message: "PKCS#7 container: no certificates found",
-        detail: "The PKCS#7 structure did not contain any embedded X.509 certificates.",
-      };
-    }
-
-    const items = parseCertificateFile(pems.join("\n"));
-    return { type: "certificates", items };
-  }
-
-  private parsePkcs7Der(raw: Uint8Array): ParsedDocument {
-    const pems = extractCertsFromPkcs7(raw);
-
-    if (pems.length === 0) {
-      return {
-        type: "error",
-        message: "PKCS#7 DER: no certificates found",
-        detail: "Could not extract certificates from the DER-encoded PKCS#7 structure.",
-      };
-    }
-
-    const items = parseCertificateFile(pems.join("\n"));
-    return { type: "certificates", items };
   }
 
   private parseCrlPem(text: string): ParsedDocument {

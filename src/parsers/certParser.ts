@@ -70,7 +70,7 @@ function parseSinglePem(pem: string): CertificateInfo {
     keyUsage,
     extendedKeyUsage,
     extensions: buildExtensions(x509),
-    signatureAlgorithm: extractSignatureAlgorithm(x509),
+    signatureAlgorithm: (x509 as any).signatureAlgorithm ?? "Unknown",
     publicKeyAlgorithm: algorithm,
     publicKeySize: keySize,
     fingerprints: {
@@ -150,36 +150,6 @@ function getPublicKeyInfo(key: crypto.KeyObject): { algorithm: string; keySize?:
   }
 }
 
-const SIG_ALG_OID: Record<string, string> = {
-  "1.2.840.113549.1.1.4":  "MD5withRSA",
-  "1.2.840.113549.1.1.5":  "SHA1withRSA",
-  "1.2.840.113549.1.1.11": "SHA256withRSA",
-  "1.2.840.113549.1.1.12": "SHA384withRSA",
-  "1.2.840.113549.1.1.13": "SHA512withRSA",
-  "1.2.840.10045.4.3.2":   "SHA256withECDSA",
-  "1.2.840.10045.4.3.3":   "SHA384withECDSA",
-  "1.2.840.10045.4.3.4":   "SHA512withECDSA",
-  "1.3.101.112":            "Ed25519",
-  "1.3.101.113":            "Ed448",
-};
-
-function extractSignatureAlgorithm(x509: crypto.X509Certificate): string {
-  try {
-    // x509.raw is the full DER-encoded certificate (available since Node 15.6)
-    // Certificate ::= SEQUENCE { TBSCertificate, AlgorithmIdentifier, BIT STRING }
-    const der = x509.raw;
-    const cert = readCertTlv(der, 0);
-    const tbs  = readCertTlv(der, cert.contentStart);
-    const alg  = readCertTlv(der, tbs.nextOffset);
-    if (alg.tag !== 0x30) return "Unknown";
-    const oidTlv = readCertTlv(der, alg.contentStart);
-    if (oidTlv.tag !== 0x06) return "Unknown";
-    const oidStr = decodeCertOid(der.slice(oidTlv.contentStart, oidTlv.contentStart + oidTlv.contentLength));
-    return SIG_ALG_OID[oidStr] ?? oidStr;
-  } catch {
-    return "Unknown";
-  }
-}
 
 function buildExtensions(x509: crypto.X509Certificate): CertificateExtension[] {
   const exts: CertificateExtension[] = [];
@@ -218,42 +188,3 @@ function formatSerial(serial: string): string {
     .toUpperCase();
 }
 
-// ── DER helpers for certParser ─────────────────────────────────────────────────
-
-function readCertTlv(
-  buf: Buffer,
-  offset: number
-): { tag: number; contentStart: number; contentLength: number; nextOffset: number } {
-  const tag = buf[offset];
-  const first = buf[offset + 1];
-  let headerBytes: number;
-  let length: number;
-  if (first < 0x80) {
-    headerBytes = 2;
-    length = first;
-  } else {
-    const numBytes = first & 0x7f;
-    if (numBytes === 0 || numBytes > 4) throw new Error(`Unsupported DER length at offset ${offset}`);
-    headerBytes = 2 + numBytes;
-    length = 0;
-    for (let i = 0; i < numBytes; i++) {
-      length = (length << 8) | buf[offset + 2 + i];
-    }
-  }
-  const contentStart = offset + headerBytes;
-  return { tag, contentStart, contentLength: length, nextOffset: contentStart + length };
-}
-
-function decodeCertOid(bytes: Buffer): string {
-  if (bytes.length === 0) return "";
-  const parts: number[] = [Math.floor(bytes[0] / 40), bytes[0] % 40];
-  let value = 0;
-  for (let i = 1; i < bytes.length; i++) {
-    value = (value << 7) | (bytes[i] & 0x7f);
-    if ((bytes[i] & 0x80) === 0) {
-      parts.push(value);
-      value = 0;
-    }
-  }
-  return parts.join(".");
-}
