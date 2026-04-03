@@ -16,24 +16,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Compile
-        run: npm run compile
+        run: pnpm compile
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
 
       - name: Test
         uses: coactions/setup-xvfb@v1
         with:
-          run: npm test
+          run: pnpm test
 
   publish:
     name: Publish to Marketplace
@@ -44,15 +48,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Publish
-        run: npx @vscode/vsce publish --no-dependencies
+        run: pnpm vsce publish --no-dependencies
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
