@@ -3,7 +3,7 @@
   "displayName": "CertView",
   "description": "View and inspect X.509 certificates directly in VSCode",
   "version": "0.1.0",
-  "publisher": "certview",
+  "publisher": "juanchi",
   "engines": {
     "vscode": "^1.85.0"
   },
