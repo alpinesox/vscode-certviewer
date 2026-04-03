@@ -2,7 +2,7 @@
 
 **Inspect X.509 certificates directly inside VS Code — no terminal, no online tools.**
 
-![CertView logo](images/icon.svg)
+![CertView logo](images/icon.png)
 
 ---
 
