@@ -13,7 +13,7 @@
 - **Expiry warnings** — certificates expiring soon are highlighted in the editor and the sidebar
 - **Certificate Explorer** — sidebar panel listing all cert files in your workspace
 - **Syntax highlighting** — PEM blocks get proper colorization in text mode
-- **Copy fingerprint** — one click to copy SHA-1 or SHA-256 fingerprint to clipboard
+- **Fingerprint display** — SHA-1 and SHA-256 fingerprints shown inline with a quick-copy button
 
 ### Supported file types
 
@@ -48,7 +48,7 @@
 ## Requirements
 
 - VS Code 1.85 or later
-- No external tools required — parsing is done with the Node.js built-in `crypto` module
+- No external tools or network access required — all parsing is done locally
 
 ---
 
@@ -65,5 +65,5 @@
 Initial release:
 - Custom editor for PEM, DER, CRL, and PKCS#7 certificate formats
 - Certificate Explorer sidebar
-- Expiry warnings and fingerprint copy
+- Expiry warnings and fingerprint display
 - PEM syntax highlighting
