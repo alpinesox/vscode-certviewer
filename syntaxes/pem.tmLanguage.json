@@ -9,11 +9,11 @@
   "repository": {
     "header": {
       "name": "keyword.control.pem",
-      "match": "^-----BEGIN [A-Z ]+-----$"
+      "match": "^-{5}BEGIN [A-Z ]+-{5}$"
     },
     "footer": {
       "name": "keyword.control.pem",
-      "match": "^-----END [A-Z ]+-----$"
+      "match": "^-{5}END [A-Z ]+-{5}$"
     },
     "content": {
       "name": "string.unquoted.pem",

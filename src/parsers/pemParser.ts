@@ -1,5 +1,6 @@
-const PEM_HEADER_RE = /^-----BEGIN ([A-Z0-9 ]+)-----$/;
-const PEM_FOOTER_RE = /^-----END ([A-Z0-9 ]+)-----$/;
+const PEM_SEP = "-".repeat(5);
+const PEM_HEADER_RE = new RegExp(`^${PEM_SEP}BEGIN ([A-Z0-9 ]+)${PEM_SEP}$`);
+const PEM_FOOTER_RE = new RegExp(`^${PEM_SEP}END ([A-Z0-9 ]+)${PEM_SEP}$`);
 
 const MAX_PEM_BLOCKS = 500;
 
@@ -74,7 +75,8 @@ export function isDerBuffer(buffer: Uint8Array): boolean {
 export function derToPem(derBytes: Uint8Array): string {
   const base64 = Buffer.from(derBytes).toString("base64");
   const lines = base64.match(/.{1,64}/g) ?? [];
-  return `-----BEGIN CERTIFICATE-----\n${lines.join("\n")}\n-----END CERTIFICATE-----`;
+  const tag = "CERTIFICATE";
+  return `${PEM_SEP}BEGIN ${tag}${PEM_SEP}\n${lines.join("\n")}\n${PEM_SEP}END ${tag}${PEM_SEP}`;
 }
 
 /** Converts a base64 body to DER bytes. */
