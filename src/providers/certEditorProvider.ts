@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { parseCertificateFile } from "../parsers/certParser";
-import { parseCsrFile } from "../parsers/csrParser";
 import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
 import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "../parsers/pemParser";
 import { ParsedDocument } from "../models/parsedDocument";
@@ -79,10 +78,6 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
         }
 
         const format = detectFormat(text, ext);
-
-        if (format === "CERTIFICATE REQUEST" || format === "NEW CERTIFICATE REQUEST") {
-          return { type: "csr", items: parseCsrFile(text) };
-        }
 
         if (format === "PKCS7") {
           return this.parsePkcs7Pem(text);
