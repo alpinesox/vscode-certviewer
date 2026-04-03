@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { execFileSync } from "child_process";
 import { parseCertificateFile } from "../parsers/certParser";
 import { parseCsrFile } from "../parsers/csrParser";
 import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
@@ -188,15 +189,17 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
       return { type: "error", message: "PKCS#12 password prompt cancelled." };
     }
 
-    // pkijs requires the full Node.js crypto stack; use child_process + openssl as fallback
+    // Use openssl CLI to extract certificates from PKCS#12
     try {
-      const { execSync } = await import("child_process");
-      const filePath = uri.fsPath;
-      const args = password
-        ? `-in "${filePath}" -passin pass:${password} -nokeys -clcerts`
-        : `-in "${filePath}" -passin pass: -nokeys -clcerts`;
+      const args = [
+        "pkcs12",
+        "-in", uri.fsPath,
+        "-passin", `pass:${password ?? ""}`,
+        "-nokeys",
+        "-clcerts",
+      ];
 
-      const pemOutput = execSync(`openssl pkcs12 ${args}`, {
+      const pemOutput = execFileSync("openssl", args, {
         encoding: "utf8",
         timeout: 10000,
       });
