@@ -3,8 +3,8 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const uri = (f: string) => vscode.Uri.file(path.join(FIXTURES, f));
-const exec = (cmd: string, ...args: unknown[]) =>
+const uri = (f: string): vscode.Uri => vscode.Uri.file(path.join(FIXTURES, f));
+const exec = (cmd: string, ...args: unknown[]): Promise<unknown> =>
   Promise.resolve(vscode.commands.executeCommand(cmd, ...args));
 
 suite("CertEditorProvider — registration", () => {

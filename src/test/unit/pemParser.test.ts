@@ -10,8 +10,8 @@ import {
 } from "../../parsers/pemParser";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const read = (f: string) => fs.readFileSync(path.join(FIXTURES, f));
-const readText = (f: string) => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
+const read = (f: string): Buffer => fs.readFileSync(path.join(FIXTURES, f));
+const readText = (f: string): string => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
 
 suite("pemParser — splitPemBlocks", () => {
   test("extracts single CERTIFICATE block", () => {

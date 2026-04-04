@@ -70,7 +70,7 @@ function parseSinglePem(pem: string): CertificateInfo {
     keyUsage,
     extendedKeyUsage,
     extensions: buildExtensions(x509),
-    signatureAlgorithm: (x509 as any).signatureAlgorithm ?? "Unknown",
+    signatureAlgorithm: (x509 as { signatureAlgorithm?: string }).signatureAlgorithm ?? "Unknown",
     publicKeyAlgorithm: algorithm,
     publicKeySize: keySize,
     fingerprints: {

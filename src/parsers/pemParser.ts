@@ -90,7 +90,7 @@ export function base64ToDer(base64: string): Uint8Array {
  */
 export function detectFormat(
   content: string | Uint8Array,
-  extension: string
+  _extension: string
 ): KnownPemType | "DER" | "UNKNOWN" {
   if (typeof content !== "string") {
     return isDerBuffer(content) ? "DER" : "UNKNOWN";

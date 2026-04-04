@@ -9,7 +9,7 @@ import {
 import { parseCertificateFile } from "../../parsers/certParser";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const readText = (f: string) => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
+const readText = (f: string): string => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
 
 function makeCert(notBefore: Date, notAfter: Date): CertificateInfo {
   return {

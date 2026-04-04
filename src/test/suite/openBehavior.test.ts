@@ -13,8 +13,8 @@ import { parseCertificateFile } from "../../parsers/certParser";
 import { buildWebviewHtml } from "../../views/certWebview";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const uri = (f: string) => vscode.Uri.file(path.join(FIXTURES, f));
-const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+const uri = (f: string): vscode.Uri => vscode.Uri.file(path.join(FIXTURES, f));
+const wait = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
 
 async function openAsUser(file: string): Promise<void> {
   await vscode.commands.executeCommand("vscode.open", uri(file));

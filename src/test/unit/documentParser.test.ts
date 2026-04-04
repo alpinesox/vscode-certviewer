@@ -13,7 +13,7 @@ import { parseDocument } from "../../parsers/documentParser";
 import { getCertificateStatus } from "../../models/certificate";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const load = (f: string) => fs.readFileSync(path.join(FIXTURES, f));
+const load = (f: string): Buffer => fs.readFileSync(path.join(FIXTURES, f));
 
 // ── Escenario: usuario abre un .pem estándar ──────────────────────────────────
 

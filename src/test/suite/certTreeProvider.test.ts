@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import { CertTreeProvider, CertTreeItem } from "../../providers/certTreeProvider";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const uri = (f: string) => vscode.Uri.file(path.join(FIXTURES, f));
+const uri = (f: string): vscode.Uri => vscode.Uri.file(path.join(FIXTURES, f));
 
 suite("CertTreeProvider — tree view registration", () => {
   test("certview.certExplorer view is registered", async () => {
