@@ -1,19 +1,16 @@
-# CertView
+# X509 Certificate Utility
 
-**Inspect X.509 certificates directly inside VS Code — no terminal, no online tools.**
-
-![CertView logo](images/icon.png)
+**Inspect X509 certificates inside VS Code.**
 
 ---
 
 ## Features
 
-- **Rich certificate viewer** — subject, issuer, validity dates, serial number, fingerprints, SANs, and all extensions at a glance
-- **Chain support** — PEM files with multiple certificates are displayed as a navigable chain
-- **Expiry warnings** — certificates expiring soon are highlighted in the editor and the sidebar
-- **Certificate Explorer** — sidebar panel listing all cert files in your workspace
-- **Syntax highlighting** — PEM blocks get proper colorization in text mode
-- **Fingerprint display** — SHA-1 and SHA-256 fingerprints shown inline with a quick-copy button
+- **X509 viewer** — subject, issuer, validity, serial number, and extensions at a glance
+- **Chain support** — multi-certificate files are displayed as a chain
+- **Expiry warnings** — certificates expiring soon are highlighted
+- **Certificate Explorer** — sidebar panel listing files in workspace
+- **Syntax highlighting** — PEM blocks get colorization
 
 ### Supported file types
 
@@ -24,14 +21,16 @@
 | `.der` | DER binary certificate |
 | `.p7b` `.p7c` `.p7` | PKCS#7 certificate bundle |
 | `.crl` | Certificate Revocation List |
+| `.csr` | Certificate Signing Request (PKCS#10) |
+| `.p12` `.pfx` | PKCS#12 keystore (certificates extracted; password prompt if protected) |
 
 ---
 
 ## Usage
 
-1. Open any supported certificate file — CertView opens automatically
-2. Use the **Certificates** panel in the Explorer sidebar to browse all cert files in your workspace
-3. Right-click a cert file → **CertView: Open Certificate** to force the custom viewer
+1. Open a certificate file — the utility opens automatically
+2. Use the **Certificates** panel in the Explorer sidebar
+3. Right-click a file → **X509 Certificate Utility: Open**
 
 ---
 
@@ -41,29 +40,31 @@
 |---------|---------|-------------|
 | `certview.showExpiredWarning` | `true` | Highlight expired certificates |
 | `certview.warningDaysBeforeExpiry` | `30` | Days before expiry to show warning |
-| `certview.defaultView` | `"summary"` | Default tab: `summary`, `details`, or `raw` |
+| `certview.defaultView` | `"summary"` | Default view tab |
 
 ---
 
 ## Requirements
 
 - VS Code 1.85 or later
-- No external tools or network access required — all parsing is done locally
+- Local parsing — no network access required
 
 ---
 
 ## Known Issues
 
-- Very large CRL files (>10 MB) may take a moment to parse
+- Large CRL files may take a moment to parse
 
 ---
 
 ## Release Notes
 
-### 0.1.0
+### 0.3.0
 
-Initial release:
-- Custom editor for PEM, DER, CRL, and PKCS#7 certificate formats
-- Certificate Explorer sidebar
-- Expiry warnings and fingerprint display
-- PEM syntax highlighting
+- Added CSR (`.csr`) support — Certificate Signing Request viewer (subject, public key, signature algorithm)
+- Added P12/PFX (`.p12`, `.pfx`) support — extracts and displays certificates from PKCS#12 keystores, with password prompt for protected files
+
+### 0.1.4
+
+- Improved metadata and stability
+- Local certificate viewing

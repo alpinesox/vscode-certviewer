@@ -1,6 +1,8 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import { ParsedDocument } from "../models/parsedDocument";
 import { parseDocument } from "../parsers/documentParser";
+import { parsePkcs12, Pkcs12PasswordError } from "../parsers/pkcs12Parser";
 import { buildWebviewHtml } from "../views/certWebview";
 
 export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
@@ -62,7 +64,57 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
 
   private async parseFile(uri: vscode.Uri): Promise<ParsedDocument> {
     const raw = await vscode.workspace.fs.readFile(uri);
+    const ext = path.extname(uri.fsPath).toLowerCase();
+
+    if (ext === ".p12" || ext === ".pfx") {
+      return this.parsePkcs12File(raw, uri.fsPath);
+    }
+
     return parseDocument(raw, uri.fsPath);
+  }
+
+  private async parsePkcs12File(raw: Uint8Array, fsPath: string): Promise<ParsedDocument> {
+    // Try empty password first (covers unprotected and empty-password P12s)
+    try {
+      const items = parsePkcs12(raw, "");
+      return { type: "certificates", items };
+    } catch (e) {
+      if (!(e instanceof Pkcs12PasswordError)) {
+        return this.pkcs12ErrorDoc(fsPath, e);
+      }
+    }
+
+    // Prompt user for password
+    const password = await vscode.window.showInputBox({
+      prompt: `Password for ${path.basename(fsPath)}`,
+      placeHolder: "Enter P12/PFX password",
+      password: true,
+      ignoreFocusOut: true,
+    });
+
+    if (password === undefined) {
+      return { type: "error", message: "P12/PFX password required", detail: "No password was provided." };
+    }
+
+    try {
+      const items = parsePkcs12(raw, password);
+      return { type: "certificates", items };
+    } catch (e) {
+      if (e instanceof Pkcs12PasswordError) {
+        return { type: "error", message: "Invalid P12/PFX password", detail: "The password is incorrect or the file is corrupt." };
+      }
+      return this.pkcs12ErrorDoc(fsPath, e);
+    }
+  }
+
+  private pkcs12ErrorDoc(fsPath: string, e: unknown): ParsedDocument {
+    const message = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack ?? "" : "";
+    return {
+      type: "error",
+      message: `Failed to parse ${path.basename(fsPath)}`,
+      detail: message + (stack ? `\n\n${stack.split("\n").slice(0, 5).join("\n")}` : ""),
+    };
   }
 
 }

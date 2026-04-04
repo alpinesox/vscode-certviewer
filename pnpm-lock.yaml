@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      node-forge:
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
       '@types/mocha':
         specifier: ^10.0.6
@@ -14,6 +18,9 @@ importers:
       '@types/node':
         specifier: 18.x
         version: 18.19.130
+      '@types/node-forge':
+        specifier: ^1.3.14
+        version: 1.3.14
       '@types/vscode':
         specifier: ^1.85.0
         version: 1.110.0
@@ -215,6 +222,9 @@ packages:
 
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
+
+  '@types/node-forge@1.3.14':
+    resolution: {integrity: sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw==}
 
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
@@ -1217,6 +1227,10 @@ packages:
   node-addon-api@4.3.0:
     resolution: {integrity: sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==}
 
+  node-forge@1.4.0:
+    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
+    engines: {node: '>= 6.13.0'}
+
   node-sarif-builder@3.4.0:
     resolution: {integrity: sha512-tGnJW6OKRii9u/b2WiUViTJS+h7Apxx17qsMUjsUeNDiMMX5ZFf8F8Fcz7PAQ6omvOxHZtvDTmOYKJQwmfpjeg==}
     engines: {node: '>=20'}
@@ -1999,6 +2013,10 @@ snapshots:
   '@types/json-schema@7.0.15': {}
 
   '@types/mocha@10.0.10': {}
+
+  '@types/node-forge@1.3.14':
+    dependencies:
+      '@types/node': 18.19.130
 
   '@types/node@18.19.130':
     dependencies:
@@ -3101,6 +3119,8 @@ snapshots:
 
   node-addon-api@4.3.0:
     optional: true
+
+  node-forge@1.4.0: {}
 
   node-sarif-builder@3.4.0:
     dependencies:

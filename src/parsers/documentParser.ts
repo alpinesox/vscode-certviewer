@@ -2,6 +2,7 @@ import * as path from "path";
 import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "./pemParser";
 import { parseCertificateFile } from "./certParser";
 import { extractCertsFromPkcs7 } from "./pkcs7Parser";
+import { parseCsrFile } from "./csrParser";
 import { ParsedDocument } from "../models/parsedDocument";
 
 /**
@@ -34,6 +35,10 @@ export function parseDocument(raw: Uint8Array, filename: string): ParsedDocument
       if (format === "PKCS7") {
         const pems = extractCertsFromPkcs7(text);
         return { type: "certificates", items: pems.flatMap(pem => parseCertificateFile(pem)) };
+      }
+
+      if (format === "CERTIFICATE REQUEST" || format === "NEW CERTIFICATE REQUEST") {
+        return { type: "csr", items: parseCsrFile(text) };
       }
 
       return { type: "certificates", items: parseCertificateFile(text) };

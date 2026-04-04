@@ -2,7 +2,7 @@
   "name": "certview",
   "displayName": "X509 Certificate Utility",
   "description": "A developer tool for inspecting X509 certificate files.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "gmm",
   "license": "MIT",
   "repository": {
@@ -13,8 +13,15 @@
     "vscode": "^1.85.0"
   },
   "icon": "images/icon.png",
-  "categories": ["Other", "Visualization"],
-  "keywords": ["utility", "certificates", "devtools"],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "utility",
+    "certificates",
+    "devtools"
+  ],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -58,6 +65,15 @@
           },
           {
             "filenamePattern": "*.p7"
+          },
+          {
+            "filenamePattern": "*.csr"
+          },
+          {
+            "filenamePattern": "*.p12"
+          },
+          {
+            "filenamePattern": "*.pfx"
           }
         ],
         "priority": "default"
@@ -84,7 +100,7 @@
       "editor/context": [
         {
           "command": "certview.openCertificate",
-          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl|p7b|p7c|p7)$/",
+          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl|p7b|p7c|p7|csr|p12|pfx)$/",
           "group": "certview"
         }
       ]
@@ -148,6 +164,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
+    "@types/node-forge": "^1.3.14",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -156,5 +173,8 @@
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "node-forge": "^1.4.0"
   }
 }

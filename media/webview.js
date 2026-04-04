@@ -109,6 +109,38 @@
     render();
   }
 
+  // ── CSR view ────────────────────────────────────────────────────────────────
+
+  function renderCsrs(csrs) {
+    var active = 0;
+
+    function renderCsr(c) {
+      return '<div class="badge-type">CERTIFICATE SIGNING REQUEST</div>'
+        + section('Subject', nameFields(c.subject))
+        + section('Public Key',
+          row('Algorithm', c.pubKey + (c.keySize ? ' ' + c.keySize + ' bit' : ''))
+          + row('Signature Algorithm', c.sigAlg))
+        + (c.sans && c.sans.length ? section('Subject Alternative Names', sanTags(c.sans)) : '');
+    }
+
+    function render() {
+      var tabsHtml = csrs.length > 1
+        ? '<div class="tabs">' + csrs.map(function (c, i) {
+          return '<button class="tab' + (i === active ? ' active' : '') + '" data-i="' + i + '">' + esc(c.displayName) + '</button>';
+        }).join('') + '</div>'
+        : '';
+      var panels = csrs.map(function (c, i) {
+        return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCsr(c) + '</div>';
+      }).join('');
+      document.getElementById('app').innerHTML = tabsHtml + panels;
+      document.querySelectorAll('.tab').forEach(function (b) {
+        b.addEventListener('click', function () { active = parseInt(b.dataset.i, 10); render(); });
+      });
+    }
+
+    render();
+  }
+
   // ── CRL view ────────────────────────────────────────────────────────────────
 
   function renderCrl(data) {
@@ -142,6 +174,7 @@
 
   switch (doc.type) {
     case 'certificates': renderCerts(doc.certs, doc.warningDays); break;
+    case 'csr': renderCsrs(doc.csrs); break;
     case 'crl': renderCrl(doc.crl); break;
     case 'error': renderError(doc.message, doc.detail); break;
     default: renderError('Unknown document type', '');
