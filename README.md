@@ -1,70 +1,105 @@
 # X509 Certificate Utility
 
-**Inspect X509 certificates inside VS Code.**
+**Stop opening terminals just to inspect a certificate.**
+View X.509 certificates, keystores, and signing requests directly inside VS Code — no OpenSSL commands needed.
+
+![Certificate details view](images/preview-cert-details.png)
 
 ---
 
-## Features
+## What it does
 
-- **X509 viewer** — subject, issuer, validity, serial number, and extensions at a glance
-- **Chain support** — multi-certificate files are displayed as a chain
-- **Expiry warnings** — certificates expiring soon are highlighted
-- **Certificate Explorer** — sidebar panel listing files in workspace
-- **Syntax highlighting** — PEM blocks get colorization
+Double-click any certificate file and instantly see:
 
-### Supported file types
+- **Subject & Issuer** — Common Name, Organization, Country, and more
+- **Validity period** — clear expiry date with a visual status banner (valid / expiring soon / expired)
+- **Fingerprints** — SHA-1 and SHA-256 with one-click copy
+- **Public key** — algorithm and key size
+- **Extensions** — SANs, Key Usage, Extended Key Usage
+
+---
+
+## Expiry warnings at a glance
+
+Never get caught by a surprise certificate expiration. Files expiring within 30 days get a yellow warning banner; expired certificates show a red one.
+
+![Expiry warning banner](images/preview-expiry-warning.png)
+
+---
+
+## Certificate chains
+
+Multi-certificate files (chains, P7B bundles) are displayed as tabbed panels — one tab per certificate in the chain.
+
+![Certificate chain with tabs](images/preview-chain-bundle.png)
+
+---
+
+## CA certificates
+
+Self-signed and CA certificates are clearly identified.
+
+![CA certificate view](images/preview-ca-certificate.png)
+
+---
+
+## Certificate Revocation Lists
+
+CRL files open with issuer and update timestamps — no more decoding DER by hand.
+
+![CRL viewer](images/preview-crl-viewer.png)
+
+---
+
+## Supported formats
 
 | Extension | Format |
 |-----------|--------|
-| `.pem` | PEM (text, single or chain) |
+| `.pem` | PEM — single certificate or chain |
 | `.cer` `.crt` | DER or PEM certificate |
 | `.der` | DER binary certificate |
 | `.p7b` `.p7c` `.p7` | PKCS#7 certificate bundle |
 | `.crl` | Certificate Revocation List |
 | `.csr` | Certificate Signing Request (PKCS#10) |
-| `.p12` `.pfx` | PKCS#12 keystore (certificates extracted; password prompt if protected) |
+| `.p12` `.pfx` | PKCS#12 keystore — password prompt if protected |
 
 ---
 
 ## Usage
 
-1. Open a certificate file — the utility opens automatically
-2. Use the **Certificates** panel in the Explorer sidebar
-3. Right-click a file → **X509 Certificate Utility: Open**
+- **Open a file** → the viewer opens automatically on double-click
+- **Right-click** any supported file → *X509 Certificate Utility: Open*
+- **Certificates panel** in the Explorer sidebar lists all cert files in the workspace
 
 ---
 
-## Extension Settings
+## Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| `certview.warningDaysBeforeExpiry` | `30` | Days before expiry to show the warning banner |
 | `certview.showExpiredWarning` | `true` | Highlight expired certificates |
-| `certview.warningDaysBeforeExpiry` | `30` | Days before expiry to show warning |
-| `certview.defaultView` | `"summary"` | Default view tab |
 
 ---
 
 ## Requirements
 
 - VS Code 1.85 or later
-- Local parsing — no network access required
-
----
-
-## Known Issues
-
-- Large CRL files may take a moment to parse
+- Works fully offline — no network access, no telemetry
 
 ---
 
 ## Release Notes
 
+### 0.3.1
+
+- CI pipeline improvements and lint cleanup
+
 ### 0.3.0
 
-- Added CSR (`.csr`) support — Certificate Signing Request viewer (subject, public key, signature algorithm)
-- Added P12/PFX (`.p12`, `.pfx`) support — extracts and displays certificates from PKCS#12 keystores, with password prompt for protected files
+- Added `.csr` support — Certificate Signing Request viewer
+- Added `.p12` / `.pfx` support — extracts certificates from PKCS#12 keystores with password prompt
 
 ### 0.1.4
 
-- Improved metadata and stability
-- Local certificate viewing
+- Initial release — local certificate viewing
