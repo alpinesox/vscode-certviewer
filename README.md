@@ -3,7 +3,7 @@
 **Stop opening terminals just to inspect a certificate.**
 View X.509 certificates, keystores, and signing requests directly inside VS Code — no OpenSSL commands needed.
 
-![Certificate details view](https://raw.githubusercontent.com/JuanTorchia/certificate-viewer-open-vscode/main/images/preview-cert-details.png)
+![Certificate details view](https://raw.githubusercontent.com/JuanTorchia/certview-assets/main/preview-cert-details.png)
 
 ---
 
@@ -23,7 +23,7 @@ Double-click any certificate file and instantly see:
 
 Never get caught by a surprise certificate expiration. Files expiring within 30 days get a yellow warning banner; expired certificates show a red one.
 
-![Expiry warning banner](https://raw.githubusercontent.com/JuanTorchia/certificate-viewer-open-vscode/main/images/preview-expiry-warning.png)
+![Expiry warning banner](https://raw.githubusercontent.com/JuanTorchia/certview-assets/main/preview-expiry-warning.png)
 
 ---
 
@@ -31,7 +31,7 @@ Never get caught by a surprise certificate expiration. Files expiring within 30 
 
 Multi-certificate files (chains, P7B bundles) are displayed as tabbed panels — one tab per certificate in the chain.
 
-![Certificate chain with tabs](https://raw.githubusercontent.com/JuanTorchia/certificate-viewer-open-vscode/main/images/preview-chain-bundle.png)
+![Certificate chain with tabs](https://raw.githubusercontent.com/JuanTorchia/certview-assets/main/preview-chain-bundle.png)
 
 ---
 
@@ -39,7 +39,7 @@ Multi-certificate files (chains, P7B bundles) are displayed as tabbed panels —
 
 Self-signed and CA certificates are clearly identified.
 
-![CA certificate view](https://raw.githubusercontent.com/JuanTorchia/certificate-viewer-open-vscode/main/images/preview-ca-certificate.png)
+![CA certificate view](https://raw.githubusercontent.com/JuanTorchia/certview-assets/main/preview-ca-certificate.png)
 
 ---
 
@@ -47,7 +47,7 @@ Self-signed and CA certificates are clearly identified.
 
 CRL files open with issuer and update timestamps — no more decoding DER by hand.
 
-![CRL viewer](https://raw.githubusercontent.com/JuanTorchia/certificate-viewer-open-vscode/main/images/preview-crl-viewer.png)
+![CRL viewer](https://raw.githubusercontent.com/JuanTorchia/certview-assets/main/preview-crl-viewer.png)
 
 ---
 
