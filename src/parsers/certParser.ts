@@ -53,6 +53,8 @@ const FORGE_EXTENSION_OIDS: Record<string, string> = {
   authorityInfoAccess: "1.3.6.1.5.5.7.1.1",
 };
 
+type ParsedExtension = forge.pki.Certificate["extensions"][number] & Record<string, unknown>;
+
 /**
  * Parses a PEM or DER certificate file.
  * Handles multi-cert PEM chains (returns one entry per cert).
@@ -89,6 +91,7 @@ export function parseCertificateFile(content: string | Uint8Array): CertificateI
 function parseSinglePem(pem: string): CertificateInfo {
   const x509 = new crypto.X509Certificate(pem);
   const forgeCert = tryParseForgeCertificate(pem);
+  const parsedExtensions = forgeCert?.extensions as ParsedExtension[] | undefined ?? parseAsn1Extensions(pem);
 
   const subject = forgeCert ? parseForgeName(forgeCert.subject.attributes, x509.subject) : parseX509Name(x509.subject);
   const issuer = forgeCert ? parseForgeName(forgeCert.issuer.attributes, x509.issuer) : parseX509Name(x509.issuer);
@@ -96,12 +99,12 @@ function parseSinglePem(pem: string): CertificateInfo {
   // keyUsage is string[] in Node.js ≥15.6
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const x509any = x509 as any;
-  const keyUsage = (forgeCert ? parseKeyUsage(forgeCert) : undefined) ?? normalizeKeyUsage(x509any.keyUsage);
+  const keyUsage = parseKeyUsage(parsedExtensions) ?? normalizeKeyUsage(x509any.keyUsage);
   const extendedKeyUsage = forgeCert ? parseExtendedKeyUsage(forgeCert, x509any.extendedKeyUsage ?? []) : parseExtendedKeyUsage(undefined, x509any.extendedKeyUsage ?? []);
   const { algorithm, keySize } = getPublicKeyInfo(x509.publicKey);
-  const extensions = buildExtensions(x509, forgeCert);
-  const basicConstraints = forgeCert ? parseBasicConstraints(forgeCert) : undefined;
-  const nameConstraints = forgeCert ? extensionValue(forgeCert, "2.5.29.30") : undefined;
+  const extensions = buildExtensions(x509, parsedExtensions);
+  const basicConstraints = parseBasicConstraints(parsedExtensions);
+  const nameConstraints = extensionValue(parsedExtensions, "2.5.29.30");
   const findings = validateCertificate(x509, subject, keyUsage, extendedKeyUsage, extensions, basicConstraints);
 
   return {
@@ -114,7 +117,7 @@ function parseSinglePem(pem: string): CertificateInfo {
       notBefore: new Date(x509.validFrom),
       notAfter: new Date(x509.validTo),
     },
-    subjectAltNames: forgeCert ? parseForgeAltNames(forgeCert, "2.5.29.17") : parseSubjectAltNames(x509.subjectAltName ?? ""),
+    subjectAltNames: parseForgeAltNames(parsedExtensions, "2.5.29.17") ?? parseSubjectAltNames(x509.subjectAltName ?? ""),
     keyUsage,
     extendedKeyUsage,
     extensions,
@@ -253,10 +256,10 @@ function parseSubjectAltNames(altNameStr: string): SubjectAlternativeName[] {
   return results;
 }
 
-function parseForgeAltNames(cert: forge.pki.Certificate, oid: string): SubjectAlternativeName[] {
-  const ext = cert.extensions.find(e => (e as { id?: string }).id === oid) as Record<string, unknown> | undefined;
+function parseForgeAltNames(extensions: ParsedExtension[], oid: string): SubjectAlternativeName[] | undefined {
+  const ext = extensions.find(e => e.id === oid) as Record<string, unknown> | undefined;
   const altNames = ext?.altNames as Array<{ type?: number; value?: unknown; ip?: string }> | undefined;
-  if (!altNames) return [];
+  if (!altNames) return undefined;
   const results: SubjectAlternativeName[] = altNames.map(name => {
     switch (name.type) {
       case 1: return { type: "email", value: String(name.value ?? "") };
@@ -314,8 +317,8 @@ function getPublicKeyInfo(key: crypto.KeyObject): { algorithm: string; keySize?:
 }
 
 
-function buildExtensions(x509: crypto.X509Certificate, cert: forge.pki.Certificate | undefined): CertificateExtension[] {
-  const exts = cert?.extensions.map(ext => {
+function buildExtensions(x509: crypto.X509Certificate, parsedExtensions: ParsedExtension[]): CertificateExtension[] {
+  const exts = parsedExtensions.map(ext => {
     const anyExt = ext as Record<string, unknown>;
     const oid = String(anyExt.id ?? extensionOidByName(ext.name) ?? "unknown");
     return {
@@ -324,7 +327,7 @@ function buildExtensions(x509: crypto.X509Certificate, cert: forge.pki.Certifica
       critical: Boolean(ext.critical),
       value: describeExtension(ext),
     };
-  }) ?? [];
+  });
 
   if (x509.subjectAltName && !exts.some(e => e.oid === "2.5.29.17")) {
     exts.push({ oid: "2.5.29.17", name: "Subject Alternative Name", critical: false, value: x509.subjectAltName });
@@ -503,23 +506,101 @@ function hex(value: string): string {
   return `DER:${Buffer.from(value, "binary").toString("hex").toUpperCase()}`;
 }
 
-function parseKeyUsage(cert: forge.pki.Certificate): string[] | undefined {
-  const ext = cert.extensions.find(e => (e as { id?: string }).id === "2.5.29.15" || e.name === "keyUsage") as Record<string, unknown> | undefined;
+function parseAsn1Extensions(pem: string): ParsedExtension[] {
+  try {
+    const der = Buffer.from(pem.replace(/-----[^-]+-----/g, "").replace(/\s/g, ""), "base64").toString("binary");
+    const cert = forge.asn1.fromDer(der);
+    const tbs = Array.isArray(cert.value) ? cert.value[0] as forge.asn1.Asn1 : undefined;
+    if (!tbs || !Array.isArray(tbs.value)) return [];
+    const extensionsWrapper = (tbs.value as forge.asn1.Asn1[]).find(node => node.tagClass === forge.asn1.Class.CONTEXT_SPECIFIC && node.type === 3);
+    const extensionsSeq = Array.isArray(extensionsWrapper?.value) ? extensionsWrapper.value[0] as forge.asn1.Asn1 : undefined;
+    if (!extensionsSeq || !Array.isArray(extensionsSeq.value)) return [];
+    return (extensionsSeq.value as forge.asn1.Asn1[]).map(parseAsn1Extension).filter((ext): ext is ParsedExtension => Boolean(ext));
+  } catch {
+    return [];
+  }
+}
+
+function parseAsn1Extension(node: forge.asn1.Asn1): ParsedExtension | undefined {
+  if (!Array.isArray(node.value) || node.value.length < 2) return undefined;
+  const values = node.value as forge.asn1.Asn1[];
+  const idNode = values[0];
+  if (typeof idNode.value !== "string") return undefined;
+  const id = forge.asn1.derToOid(idNode.value);
+  let critical = false;
+  let valueNode = values[1];
+  if (valueNode.type === forge.asn1.Type.BOOLEAN) {
+    critical = valueNode.value !== "\x00";
+    valueNode = values[2];
+  }
+  if (!valueNode || typeof valueNode.value !== "string") return undefined;
+  const ext: ParsedExtension = { id, name: OID_NAMES[id] ?? extensionNameByOid(id), critical, value: valueNode.value } as ParsedExtension;
+  enrichParsedExtension(ext);
+  return ext;
+}
+
+function extensionNameByOid(id: string): string | undefined {
+  return Object.entries(FORGE_EXTENSION_OIDS).find(([, oidValue]) => oidValue === id)?.[0];
+}
+
+function enrichParsedExtension(ext: ParsedExtension): void {
+  const inner = typeof ext.value === "string" ? fromDer(ext.value) : undefined;
+  if (!inner) return;
+  if (ext.id === "2.5.29.19") enrichBasicConstraints(ext, inner);
+  if (ext.id === "2.5.29.15") enrichKeyUsage(ext, inner);
+  if (ext.id === "2.5.29.17" || ext.id === "2.5.29.18") enrichAltNames(ext, inner);
+}
+
+function enrichBasicConstraints(ext: ParsedExtension, inner: forge.asn1.Asn1): void {
+  ext.name = "basicConstraints";
+  if (!Array.isArray(inner.value)) return;
+  for (const node of inner.value as forge.asn1.Asn1[]) {
+    if (node.type === forge.asn1.Type.BOOLEAN) ext.cA = node.value !== "\x00";
+    if (node.type === forge.asn1.Type.INTEGER && typeof node.value === "string") ext.pathLenConstraint = Buffer.from(node.value, "binary").readUIntBE(0, node.value.length);
+  }
+}
+
+function enrichKeyUsage(ext: ParsedExtension, inner: forge.asn1.Asn1): void {
+  ext.name = "keyUsage";
+  if (typeof inner.value !== "string" || inner.value.length < 2) return;
+  const bytes = Buffer.from(inner.value, "binary").subarray(1);
+  const flags: Array<[string, number]> = [
+    ["digitalSignature", 0], ["nonRepudiation", 1], ["keyEncipherment", 2], ["dataEncipherment", 3],
+    ["keyAgreement", 4], ["keyCertSign", 5], ["cRLSign", 6], ["encipherOnly", 7], ["decipherOnly", 8],
+  ];
+  for (const [name, bit] of flags) {
+    const byte = bytes[Math.floor(bit / 8)] ?? 0;
+    ext[name] = Boolean(byte & (0x80 >> (bit % 8)));
+  }
+}
+
+function enrichAltNames(ext: ParsedExtension, inner: forge.asn1.Asn1): void {
+  ext.name = ext.id === "2.5.29.17" ? "subjectAltName" : "issuerAltName";
+  if (!Array.isArray(inner.value)) return;
+  ext.altNames = (inner.value as forge.asn1.Asn1[]).map(node => {
+    const value = typeof node.value === "string" ? node.value : undefined;
+    if (node.type === 7 && value) return { type: node.type, value, ip: binaryToIp(value) };
+    return { type: node.type, value };
+  });
+}
+
+function parseKeyUsage(extensions: ParsedExtension[]): string[] | undefined {
+  const ext = extensions.find(e => e.id === "2.5.29.15" || e.name === "keyUsage") as Record<string, unknown> | undefined;
   if (!ext) return undefined;
   const names = ["digitalSignature", "nonRepudiation", "keyEncipherment", "dataEncipherment", "keyAgreement", "keyCertSign", "cRLSign", "encipherOnly", "decipherOnly"];
   return names.filter(name => ext[name] === true);
 }
 
-function parseBasicConstraints(cert: forge.pki.Certificate): { ca: boolean; pathLenConstraint?: number } | undefined {
-  const ext = cert.extensions.find(e => (e as { id?: string }).id === "2.5.29.19" || e.name === "basicConstraints") as Record<string, unknown> | undefined;
+function parseBasicConstraints(extensions: ParsedExtension[]): { ca: boolean; pathLenConstraint?: number } | undefined {
+  const ext = extensions.find(e => e.id === "2.5.29.19" || e.name === "basicConstraints") as Record<string, unknown> | undefined;
   if (!ext) return undefined;
   const result: { ca: boolean; pathLenConstraint?: number } = { ca: Boolean(ext.cA) };
   if (typeof ext.pathLenConstraint === "number") result.pathLenConstraint = ext.pathLenConstraint;
   return result;
 }
 
-function extensionValue(cert: forge.pki.Certificate, oid: string): string | undefined {
-  const ext = cert.extensions.find(e => (e as { id?: string }).id === oid);
+function extensionValue(extensions: ParsedExtension[], oid: string): string | undefined {
+  const ext = extensions.find(e => e.id === oid);
   return ext ? describeExtension(ext) : undefined;
 }
 
