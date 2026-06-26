@@ -6,16 +6,17 @@ import { parsePkcs12, Pkcs12PasswordError } from "../parsers/pkcs12Parser";
 import { buildWebviewHtml } from "../views/certWebview";
 import { MAX_INPUT_BYTES } from "../parsers/limits";
 import { EncryptedPrivateKeyPasswordError, isEncryptedPrivateKey, parseKeyFile } from "../parsers/keyParser";
+import { CertDiagnosticsProvider } from "./certDiagnostics";
 
 export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
   public static readonly viewType = "certview.certEditor";
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly diagnosticsProvider?: CertDiagnosticsProvider) {}
 
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+  public static register(context: vscode.ExtensionContext, diagnosticsProvider?: CertDiagnosticsProvider): vscode.Disposable {
     return vscode.window.registerCustomEditorProvider(
       CertEditorProvider.viewType,
-      new CertEditorProvider(context),
+      new CertEditorProvider(context, diagnosticsProvider),
       {
         webviewOptions: { retainContextWhenHidden: true },
         supportsMultipleEditorsPerDocument: false,
@@ -42,6 +43,7 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
     const warningDays: number = config.get("warningDaysBeforeExpiry", 30);
 
     const parsed = await this.parseFile(document.uri);
+    await this.diagnosticsProvider?.updateUri(document.uri);
     webviewPanel.webview.html = buildWebviewHtml(
       webviewPanel.webview,
       this.context.extensionUri,
