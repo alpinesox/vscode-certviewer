@@ -10,7 +10,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { parseDocument } from "../../parsers/documentParser";
-import { getCertificateStatus } from "../../models/certificate";
+import { CertificateInfo, getCertificateStatus } from "../../models/certificate";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
 const load = (f: string): Buffer => fs.readFileSync(path.join(FIXTURES, f));
@@ -210,23 +210,30 @@ suite("parseDocument — usuario abre archivo incorrecto", () => {
 // ── Escenario: configuración warningDays afecta lo que ve el usuario ──────────
 
 suite("parseDocument + getCertificateStatus — warningDays config", () => {
-  test("cert que vence en 10 días: con warningDays=30 → expiring-soon", () => {
-    const doc = parseDocument(load("expiring-soon.pem"), "expiring-soon.pem");
+  function nearExpiryCert(): CertificateInfo {
+    const doc = parseDocument(load("self-signed.pem"), "self-signed.pem");
     assert.strictEqual(doc.type, "certificates");
-    assert.strictEqual(getCertificateStatus(doc.items[0], 30), "expiring-soon");
+    const now = new Date();
+    return {
+      ...doc.items[0],
+      validity: {
+        notBefore: new Date(now.getTime() - 86400000),
+        notAfter: new Date(now.getTime() + 10 * 86400000),
+      },
+    };
+  }
+
+  test("cert que vence en 10 días: con warningDays=30 → expiring-soon", () => {
+    assert.strictEqual(getCertificateStatus(nearExpiryCert(), 30), "expiring-soon");
   });
 
   test("cert que vence en 10 días: con warningDays=5 → valid", () => {
-    const doc = parseDocument(load("expiring-soon.pem"), "expiring-soon.pem");
-    assert.strictEqual(doc.type, "certificates");
     // Con threshold de 5 días, 10 días restantes es "valid"
-    assert.strictEqual(getCertificateStatus(doc.items[0], 5), "valid");
+    assert.strictEqual(getCertificateStatus(nearExpiryCert(), 5), "valid");
   });
 
   test("cambiar warningDays cambia el status que ve el usuario", () => {
-    const doc = parseDocument(load("expiring-soon.pem"), "expiring-soon.pem");
-    assert.strictEqual(doc.type, "certificates");
-    const cert = doc.items[0];
+    const cert = nearExpiryCert();
     // El mismo cert puede ser "valid" o "expiring-soon" según la config del usuario
     const withHighThreshold = getCertificateStatus(cert, 30);
     const withLowThreshold  = getCertificateStatus(cert, 5);

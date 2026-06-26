@@ -74,6 +74,12 @@
           },
           {
             "filenamePattern": "*.pfx"
+          },
+          {
+            "filenamePattern": "*.key"
+          },
+          {
+            "filenamePattern": "*.pub"
           }
         ],
         "priority": "default"
@@ -100,7 +106,7 @@
       "editor/context": [
         {
           "command": "certview.openCertificate",
-          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl|p7b|p7c|p7|csr|p12|pfx)$/",
+          "when": "resourceExtname =~ /\\.(pem|cer|crt|der|crl|p7b|p7c|p7|csr|p12|pfx|key|pub)$/",
           "group": "certview"
         }
       ]

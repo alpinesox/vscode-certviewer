@@ -3,13 +3,16 @@ import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "./pemPa
 import { parseCertificateFile } from "./certParser";
 import { extractCertsFromPkcs7 } from "./pkcs7Parser";
 import { parseCsrFile } from "./csrParser";
+import { parseKeyFile } from "./keyParser";
 import { ParsedDocument } from "../models/parsedDocument";
+import { assertWithinInputLimit } from "./limits";
 
 /**
  * Parses raw file bytes into a ParsedDocument.
  * Pure function — no VSCode dependency, fully testable.
  */
 export function parseDocument(raw: Uint8Array, filename: string): ParsedDocument {
+  assertWithinInputLimit(raw.byteLength, "Input file");
   const ext = path.extname(filename).toLowerCase();
 
   try {
@@ -24,6 +27,10 @@ export function parseDocument(raw: Uint8Array, filename: string): ParsedDocument
 
       if (!isPemContent(text)) {
         return parseDer(raw);
+      }
+
+      if (/-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/.test(text) || /-----BEGIN (?:[A-Z ]+ )?PUBLIC KEY-----/.test(text)) {
+        return { type: "keys", items: parseKeyFile(raw, filename) };
       }
 
       const format = detectFormat(text, ext);
@@ -58,6 +65,7 @@ export function parseDocument(raw: Uint8Array, filename: string): ParsedDocument
 }
 
 function parseDer(raw: Uint8Array): ParsedDocument {
+  assertWithinInputLimit(raw.byteLength, "DER file");
   return { type: "certificates", items: parseCertificateFile(raw) };
 }
 

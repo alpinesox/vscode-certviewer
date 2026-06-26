@@ -91,6 +91,8 @@ function buildPayload(doc: ParsedDocument, warningDays: number): unknown {
       return { type: "csr", csrs: doc.items.map(serializeCsr) };
     case "crl":
       return { type: "crl", crl: { issuer: doc.issuer, thisUpdate: doc.thisUpdate, nextUpdate: doc.nextUpdate, revokedCount: doc.revokedCount } };
+    case "keys":
+      return { type: "keys", keys: doc.items };
     case "error":
       return { type: "error", message: doc.message, detail: doc.detail ?? "" };
   }
@@ -153,6 +155,11 @@ function serializeCert(cert: CertificateInfo, warningDays: number): Record<strin
     sigAlg: cert.signatureAlgorithm,
     selfSigned: cert.isSelfSigned,
     isCA: cert.isCA,
+    basicConstraints: cert.basicConstraints,
+    nameConstraints: cert.nameConstraints,
+    extensions: cert.extensions,
+    publicKeyPem: cert.publicKeyPem,
+    findings: cert.findings,
   };
 }
 

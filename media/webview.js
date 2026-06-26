@@ -13,9 +13,25 @@
       .replace(/"/g, '&quot;');
   }
 
+  var HELP = {
+    'Subject': 'RFC 5280 section 4.1.2.6: entity associated with the public key.',
+    'Issuer': 'RFC 5280 section 4.1.2.4: CA that signed the certificate.',
+    'Validity': 'RFC 5280 section 4.1.2.5: notBefore/notAfter validity interval.',
+    'Subject Alternative Names': 'RFC 5280 section 4.2.1.6; RFC 6125 uses SAN for TLS identity checks.',
+    'Key Usage': 'RFC 5280 section 4.2.1.3: permitted cryptographic operations.',
+    'Extended Key Usage': 'RFC 5280 section 4.2.1.12: application-specific key purposes.',
+    'Extensions': 'RFC 5280 section 4.2: X.509 v3 extensions; critical extensions must be understood.',
+    'Basic Constraints': 'RFC 5280 section 4.2.1.9: CA flag and optional pathLenConstraint.',
+    'Name Constraints': 'RFC 5280 section 4.2.1.10: permitted/excluded subject name subtrees.',
+    'Fingerprints': 'Digest over DER certificate bytes; useful for comparison, not identity validation.',
+    'Public Key': 'RFC 5280 section 4.1.2.7: subject public key algorithm and key material.'
+  };
+
+  function hint(text) { return text ? ' title="' + esc(text) + '"' : ''; }
+
   function row(label, value) {
     if (!value) { return ''; }
-    return '<div class="row"><span class="lbl">' + esc(label) + '</span><span class="val">' + esc(String(value)) + '</span></div>';
+    return '<div class="row"' + hint(HELP[label]) + '><span class="lbl">' + esc(label) + '</span><span class="val">' + esc(String(value)) + '</span></div>';
   }
 
   function fpRow(label, value) {
@@ -36,7 +52,23 @@
   }
 
   function section(title, content) {
-    return '<details open><summary>' + esc(title) + '</summary><div class="section-body">' + content + '</div></details>';
+    return '<details open><summary' + hint(HELP[title]) + '>' + esc(title) + '</summary><div class="section-body">' + content + '</div></details>';
+  }
+
+  function validationBanner(findings) {
+    if (!findings || !findings.length) {
+      return '<div class="banner ok" title="Basic CertView lint checks passed; this is not a full compliance validation.">No lint findings</div>';
+    }
+    var cls = findings.some(function (f) { return f.severity === 'error'; }) ? 'err' : findings.some(function (f) { return f.severity === 'warning'; }) ? 'warn' : 'info';
+    return '<div class="banner ' + cls + '"><div>Lint findings: ' + findings.length + '</div><ul>' +
+      findings.map(function (f) { return '<li><strong>' + esc(f.severity.toUpperCase()) + '</strong>: ' + esc(f.message) + (f.rfc ? ' (' + esc(f.rfc) + ')' : '') + '</li>'; }).join('') +
+      '</ul></div>';
+  }
+
+  function extensionRows(exts) {
+    return exts.map(function (e) {
+      return row(e.name + ' (' + e.oid + (e.critical ? ', critical' : ', noncritical') + ')', e.value || '(present)');
+    }).join('');
   }
 
   function nameFields(s) {
@@ -64,7 +96,8 @@
     }
 
     function renderCert(c) {
-      return banner(c)
+      return validationBanner(c.findings)
+        + banner(c)
         + section('Subject', nameFields(c.subject))
         + section('Issuer', nameFields(c.issuer))
         + section('Validity',
@@ -72,6 +105,9 @@
         + (c.sans.length ? section('Subject Alternative Names', sanTags(c.sans)) : '')
         + (c.keyUsage.length ? section('Key Usage', tags(c.keyUsage)) : '')
         + (c.extKeyUsage.length ? section('Extended Key Usage', tags(c.extKeyUsage)) : '')
+        + (c.basicConstraints ? section('Basic Constraints', row('CA Certificate', c.basicConstraints.ca ? 'Yes' : 'No') + row('Path Length', c.basicConstraints.pathLenConstraint)) : '')
+        + (c.nameConstraints ? section('Name Constraints', row('Constraints', c.nameConstraints)) : '')
+        + (c.extensions && c.extensions.length ? section('Extensions', extensionRows(c.extensions)) : '')
         + section('Fingerprints', fpRow('SHA-1', c.sha1) + fpRow('SHA-256', c.sha256))
         + section('Details',
           row('Serial Number', c.serial)
@@ -80,6 +116,7 @@
           + row('Signature Algorithm', c.sigAlg)
           + row('Self-Signed', c.selfSigned ? 'Yes' : 'No')
           + row('CA Certificate', c.isCA ? 'Yes' : 'No'))
+        + (c.publicKeyPem ? section('Public Key', row('Public Key PEM', c.publicKeyPem)) : '')
         + '<button class="link-btn" id="openRawBtn">Open as text \u2197</button>';
     }
 
@@ -159,6 +196,16 @@
     }
   }
 
+  function renderKeys(keys) {
+    var html = keys.map(function (k) {
+      return '<div class="badge-type">' + esc(k.kind.toUpperCase()) + ' KEY</div>'
+        + section('Public Key', row('Algorithm', k.algorithm + (k.keySize ? ' ' + k.keySize + ' bit' : '') + (k.curve ? ' ' + k.curve : ''))
+          + row('Format', k.format)
+          + row('Public Key PEM', k.publicKeyPem));
+    }).join('');
+    document.getElementById('app').innerHTML = html;
+  }
+
   // ── Error view ───────────────────────────────────────────────────────────────
 
   function renderError(message, detail) {
@@ -176,6 +223,7 @@
     case 'certificates': renderCerts(doc.certs, doc.warningDays); break;
     case 'csr': renderCsrs(doc.csrs); break;
     case 'crl': renderCrl(doc.crl); break;
+    case 'keys': renderKeys(doc.keys); break;
     case 'error': renderError(doc.message, doc.detail); break;
     default: renderError('Unknown document type', '');
   }

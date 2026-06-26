@@ -5,6 +5,7 @@ import { getCertDisplayName } from "../utils/formatters";
 import { parseCertificateFile } from "../parsers/certParser";
 import { extractCertsFromPkcs7 } from "../parsers/pkcs7Parser";
 import { isDerBuffer } from "../parsers/pemParser";
+import { MAX_INPUT_BYTES } from "../parsers/limits";
 
 type TreeItemType = "file" | "cert" | "field";
 
@@ -103,6 +104,13 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
 
   private async getCertsFromFile(uri: vscode.Uri): Promise<CertTreeItem[]> {
     try {
+      const stat = await vscode.workspace.fs.stat(uri);
+      if (stat.size > MAX_INPUT_BYTES) {
+        const item = new CertTreeItem("File too large to parse", vscode.TreeItemCollapsibleState.None, "field");
+        item.iconPath = new vscode.ThemeIcon("warning");
+        item.tooltip = `CertView limit is ${MAX_INPUT_BYTES} bytes.`;
+        return [item];
+      }
       const raw = await vscode.workspace.fs.readFile(uri);
       const ext = path.extname(uri.fsPath).toLowerCase();
 

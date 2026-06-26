@@ -4,6 +4,7 @@ import { ParsedDocument } from "../models/parsedDocument";
 import { parseDocument } from "../parsers/documentParser";
 import { parsePkcs12, Pkcs12PasswordError } from "../parsers/pkcs12Parser";
 import { buildWebviewHtml } from "../views/certWebview";
+import { MAX_INPUT_BYTES } from "../parsers/limits";
 
 export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
   public static readonly viewType = "certview.certEditor";
@@ -63,6 +64,14 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
   }
 
   private async parseFile(uri: vscode.Uri): Promise<ParsedDocument> {
+    const stat = await vscode.workspace.fs.stat(uri);
+    if (stat.size > MAX_INPUT_BYTES) {
+      return {
+        type: "error",
+        message: `Refusing to parse ${path.basename(uri.fsPath)}`,
+        detail: `File is ${stat.size} bytes; CertView limit is ${MAX_INPUT_BYTES} bytes to protect the VS Code extension host from unbounded parsing.`,
+      };
+    }
     const raw = await vscode.workspace.fs.readFile(uri);
     const ext = path.extname(uri.fsPath).toLowerCase();
 

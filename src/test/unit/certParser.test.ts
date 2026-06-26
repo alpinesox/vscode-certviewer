@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { parseCertificateFile } from "../../parsers/certParser";
+import { parseCertificateFile, parseX509Name } from "../../parsers/certParser";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
 const readText = (f: string): string => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
@@ -17,6 +17,20 @@ suite("certParser — error cases", () => {
       () => parseCertificateFile("-----BEGIN PRIVATE KEY-----\naGVsbG8=\n-----END PRIVATE KEY-----"),
       /No CERTIFICATE blocks found/
     );
+  });
+
+  test("rejects oversized input before certificate parsing", () => {
+    const hugePem = `-----BEGIN CERTIFICATE-----\n${"A".repeat(6 * 1024 * 1024)}\n-----END CERTIFICATE-----`;
+    assert.throws(() => parseCertificateFile(hugePem), /larger than/);
+  });
+});
+
+suite("certParser — X.509 name parsing", () => {
+  test("does not split escaped commas in common names", () => {
+    const subject = parseX509Name("CN=F5\\, Inc., O=F5\\, Inc., C=US");
+    assert.strictEqual(subject.commonName, "F5, Inc.");
+    assert.deepStrictEqual(subject.organization, ["F5, Inc."]);
+    assert.deepStrictEqual(subject.country, ["US"]);
   });
 });
 

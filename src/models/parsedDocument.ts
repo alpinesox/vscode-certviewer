@@ -1,5 +1,6 @@
 import { CertificateInfo } from "./certificate";
 import { CsrInfo } from "../parsers/csrParser";
+import { KeyInfo } from "../parsers/keyParser";
 
 export interface CertificateDocument {
   type: "certificates";
@@ -26,8 +27,14 @@ export interface ErrorDocument {
   detail?: string;
 }
 
+export interface KeyDocument {
+  type: "keys";
+  items: KeyInfo[];
+}
+
 export type ParsedDocument =
   | CertificateDocument
   | CsrDocument
   | CrlDocument
+  | KeyDocument
   | ErrorDocument;

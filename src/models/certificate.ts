@@ -25,6 +25,14 @@ export interface CertificateExtension {
   value: string;
 }
 
+export type CertificateFindingSeverity = "error" | "warning" | "info";
+
+export interface CertificateFinding {
+  severity: CertificateFindingSeverity;
+  message: string;
+  rfc?: string;
+}
+
 export interface CertificateInfo {
   /** Raw PEM string */
   pem: string;
@@ -37,15 +45,22 @@ export interface CertificateInfo {
   keyUsage: string[];
   extendedKeyUsage: string[];
   extensions: CertificateExtension[];
+  basicConstraints?: {
+    ca: boolean;
+    pathLenConstraint?: number;
+  };
+  nameConstraints?: string;
   signatureAlgorithm: string;
   publicKeyAlgorithm: string;
   publicKeySize?: number;
+  publicKeyPem?: string;
   fingerprints: {
     sha1: string;
     sha256: string;
   };
   isSelfSigned: boolean;
   isCA: boolean;
+  findings: CertificateFinding[];
 }
 
 export type CertificateStatus = "valid" | "expiring-soon" | "expired" | "not-yet-valid";
