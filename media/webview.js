@@ -30,7 +30,7 @@
   function hint(text) { return text ? ' title="' + esc(text) + '"' : ''; }
 
   function row(label, value) {
-    if (!value) { return ''; }
+    if (value === null || value === undefined || value === '') { return ''; }
     return '<div class="row"' + hint(HELP[label]) + '><span class="lbl">' + esc(label) + '</span><span class="val">' + esc(String(value)) + '</span></div>';
   }
 

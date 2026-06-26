@@ -14,7 +14,7 @@ export interface CertificateValidity {
 }
 
 export interface SubjectAlternativeName {
-  type: "dns" | "ip" | "email" | "uri";
+  type: "dns" | "ip" | "email" | "uri" | "otherName" | "unknown";
   value: string;
 }
 

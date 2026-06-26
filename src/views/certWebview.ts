@@ -50,7 +50,7 @@ export function buildWebviewHtml(
          border-bottom:1px solid var(--vscode-panel-border)}
     .row:last-child{border-bottom:none}
     .lbl{color:var(--vscode-descriptionForeground);font-size:.9em;align-self:start;padding-top:1px}
-    .val{font-family:var(--vscode-editor-font-family,monospace);word-break:break-all}
+    .val{font-family:var(--vscode-editor-font-family,monospace);word-break:break-all;white-space:pre-wrap}
     .mono{font-family:var(--vscode-editor-font-family,monospace)}
     .tags{display:flex;flex-wrap:wrap;gap:4px}
     .tag{padding:2px 8px;border-radius:12px;background:var(--vscode-badge-background);
