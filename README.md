@@ -52,7 +52,7 @@ CRL files open with issuer and update timestamps — no more decoding DER by han
 | `.crl` | Certificate Revocation List |
 | `.csr` | Certificate Signing Request (PKCS#10) |
 | `.p12` `.pfx` | PKCS#12 keystore — password prompt if protected |
-| `.key` `.pub` | PEM or DER public keys and private keys, including encrypted PKCS#8 private keys and runtime-supported post-quantum keys such as ML-DSA |
+| `.key` `.pub` | PEM or DER public keys and unencrypted private keys, plus encrypted private-key detection without decryption prompts |
 | `.jwk` | JSON Web Key public keys |
 
 ## Usage
@@ -82,6 +82,7 @@ CRL files open with issuer and update timestamps — no more decoding DER by han
 - Multi-certificate files are checked for issuer/subject ordering, CA marking, keyCertSign usage, validity nesting, and path length constraints.
 - Critical and noncritical X.509 v3 extensions are shown with OID, display name, and decoded or hexadecimal value where available.
 - Newer algorithms such as ML-DSA depend on the VS Code extension host's Node.js and OpenSSL support.
+- Encrypted private keys are detected but not decrypted; CertView does not prompt for private-key passwords.
 - Lint findings are guidance, not a complete compliance or WebPKI validation engine.
 
 This artifact was produced with AI assistance and should be reviewed by a qualified professional before use as compliance evidence, legal submission, or external distribution.

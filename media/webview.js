@@ -204,6 +204,8 @@
       return '<div class="badge-type">' + esc(k.kind.toUpperCase()) + ' KEY</div>'
         + section('Public Key', row('Algorithm', k.algorithm + (k.keySize ? ' ' + k.keySize + ' bit' : '') + (k.curve ? ' ' + k.curve : ''))
           + row('Format', k.format)
+          + row('Encrypted', k.encrypted ? 'Yes' : '')
+          + row('Note', k.note)
           + row('Public Key PEM', k.publicKeyPem));
     }).join('');
     document.getElementById('app').innerHTML = html;
