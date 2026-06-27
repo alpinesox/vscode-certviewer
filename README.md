@@ -44,10 +44,10 @@ CRL files open with issuer and update timestamps — no more decoding DER by han
 ## Supported formats
 
 | Extension | Format |
-|-----------|--------|
-| `.pem` | PEM — single certificate or chain |
+| --- | --- |
+| `.pem` | PEM — single certificate, certificate chain, public key, or private key |
 | `.cer` `.crt` | DER or PEM certificate |
-| `.der` | DER binary certificate |
+| `.der` | DER binary certificate, with DER SPKI/PKCS#8 key fallback |
 | `.p7b` `.p7c` `.p7` | PKCS#7 certificate bundle |
 | `.crl` | Certificate Revocation List |
 | `.csr` | Certificate Signing Request (PKCS#10) |
@@ -66,7 +66,7 @@ CRL files open with issuer and update timestamps — no more decoding DER by han
 ## Settings
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+| --- | --- | --- |
 | `certview.warningDaysBeforeExpiry` | `30` | Days before expiry to show the warning banner |
 | `certview.showExpiredWarning` | `true` | Highlight expired certificates |
 
@@ -88,6 +88,14 @@ CRL files open with issuer and update timestamps — no more decoding DER by han
 This artifact was produced with AI assistance and should be reviewed by a qualified professional before use as compliance evidence, legal submission, or external distribution.
 
 ## Release Notes
+
+### 0.3.4
+
+- Added certificate lint findings in the viewer and native VS Code Problems diagnostics
+- Added broader X.509 extension decoding, chain checks, and path length validation
+- Added PEM, DER, JWK, and runtime-dependent ML-DSA key viewing support
+- Detects encrypted private keys without password prompts or decryption
+- Hardened parsing with input limits and safer handling for newer certificate algorithms
 
 ### 0.3.1
 
