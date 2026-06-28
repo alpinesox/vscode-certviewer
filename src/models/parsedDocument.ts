@@ -32,8 +32,15 @@ export interface KeyDocument {
   items: KeyInfo[];
 }
 
+export interface BundleDocument {
+  type: "bundle";
+  certificates: CertificateInfo[];
+  keys: KeyInfo[];
+}
+
 export type ParsedDocument =
   | CertificateDocument
+  | BundleDocument
   | CsrDocument
   | CrlDocument
   | KeyDocument

@@ -209,12 +209,14 @@ suite("parseDocument — usuario abre archivo incorrecto", () => {
 });
 
 suite("parseDocument — usuario abre llaves", () => {
-  test("mixed PEM certificate and private key prefers certificate parsing", () => {
+  test("mixed PEM certificate and private key returns certificate and key bundle", () => {
     const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
     const keyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
     const doc = parseDocument(Buffer.concat([load("self-signed.pem"), Buffer.from("\n" + keyPem)]), "mixed.pem");
-    assert.strictEqual(doc.type, "certificates");
-    assert.strictEqual(doc.items[0].subject.commonName, "self-signed.example.com");
+    assert.strictEqual(doc.type, "bundle");
+    assert.strictEqual(doc.certificates[0].subject.commonName, "self-signed.example.com");
+    assert.strictEqual(doc.keys[0].kind, "private");
+    assert.ok(doc.keys[0].spkiFingerprints?.sha256);
   });
 
   test("JWK public key is rendered as a key document", () => {
@@ -224,6 +226,7 @@ suite("parseDocument — usuario abre llaves", () => {
     assert.strictEqual(doc.type, "keys");
     assert.strictEqual(doc.items[0].algorithm, "RSA");
     assert.strictEqual(doc.items[0].format, "JWK");
+    assert.ok(doc.items[0].spkiFingerprints?.sha256);
   });
 
   test("ML-DSA public key is rendered when runtime supports it", function () {
@@ -265,6 +268,7 @@ suite("parseDocument — usuario abre llaves", () => {
     assert.strictEqual(doc.items[0].kind, "public");
     assert.strictEqual(doc.items[0].algorithm, "RSA");
     assert.strictEqual(doc.items[0].format, "DER");
+    assert.match(doc.items[0].spkiFingerprints?.sha256 ?? "", /^[A-F0-9:]+$/);
   });
 
   test("DER SPKI public key with .der extension falls back to key parsing", () => {

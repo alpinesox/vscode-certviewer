@@ -54,6 +54,8 @@
     'key.encrypted': 'RFC 5958: EncryptedPrivateKeyInfo indicates password-based protection; CertView does not decrypt it.',
     'key.note': 'Security note for key handling in this viewer.',
     'key.publicKeyPem': 'RFC 5280 §4.1.2.7: exported SubjectPublicKeyInfo PEM derived from the parsed key.',
+    'key.spki.sha1': 'SHA-1 digest over the DER-encoded SubjectPublicKeyInfo for the parsed key; useful for key continuity checks, not trust validation.',
+    'key.spki.sha256': 'SHA-256 digest over the DER-encoded SubjectPublicKeyInfo for the parsed key; useful for key inventory and comparison.',
     'csr.subject': 'RFC 2986 §4.1: CertificationRequestInfo subject requested by the applicant.',
     'csr.publicKey': 'RFC 2986 §4.1: SubjectPublicKeyInfo included in the certification request.',
     'csr.signatureAlgorithm': 'RFC 2986 §4.1: algorithm used to sign the certification request.',
@@ -75,19 +77,25 @@
     '2.5.29.31': 'RFC 5280 §4.2.1.13: CRL Distribution Points identifies where revocation lists may be obtained.',
     '1.3.6.1.5.5.7.1.1': 'RFC 5280 §4.2.2.1: Authority Information Access may identify OCSP responders and issuer certificate locations.',
     '2.5.29.32': 'RFC 5280 §4.2.1.4: Certificate Policies identifies policy OIDs applicable to the certificate.',
-    '1.3.6.1.5.5.7.1.24': 'RFC 7633: TLS Feature extension, commonly used for OCSP Must-Staple.'
+    '1.3.6.1.5.5.7.1.24': 'RFC 7633: TLS Feature extension, commonly used for OCSP Must-Staple.',
+    '1.3.6.1.4.1.11129.2.4.2': 'RFC 6962: embedded Signed Certificate Timestamp list for Certificate Transparency.'
   };
 
   function hint(text) { return text ? ' title="' + esc(text) + '"' : ''; }
 
+  function help(text) {
+    return text ? '<span class="help" tabindex="0" role="note" data-help="' + esc(text) + '" title="' + esc(text) + '">?</span>' : '';
+  }
+
   function row(fieldId, label, value) {
     if (arguments.length === 2) { value = label; label = fieldId; fieldId = label; }
     if (value === null || value === undefined || value === '') { return ''; }
-    return '<div class="row"' + hint(HELP[fieldId] || HELP[label]) + '><span class="lbl">' + esc(label) + '</span><span class="val">' + esc(String(value)) + '</span></div>';
+    var h = HELP[fieldId] || HELP[label];
+    return '<div class="row"' + hint(h) + '><span class="lbl">' + esc(label) + help(h) + '</span><span class="val">' + esc(String(value)) + '</span></div>';
   }
 
   function fpRow(fieldId, label, value) {
-    return '<div class="row"' + hint(HELP[fieldId]) + '><span class="lbl">' + esc(label) + '</span><span class="val mono">' + esc(value) +
+    return '<div class="row"' + hint(HELP[fieldId]) + '><span class="lbl">' + esc(label) + help(HELP[fieldId]) + '</span><span class="val mono">' + esc(value) +
       '<button class="copy-btn" data-v="' + esc(value) + '">Copy</button></span></div>';
   }
 
@@ -105,7 +113,8 @@
 
   function section(fieldId, title, content) {
     if (arguments.length === 2) { content = title; title = fieldId; fieldId = title; }
-    return '<details open><summary' + hint(HELP[fieldId] || HELP[title]) + '>' + esc(title) + '</summary><div class="section-body">' + content + '</div></details>';
+    var h = HELP[fieldId] || HELP[title];
+    return '<details open><summary' + hint(h) + '>' + esc(title) + help(h) + '</summary><div class="section-body">' + content + '</div></details>';
   }
 
   function validationBanner(findings, report) {
@@ -123,7 +132,8 @@
     return exts.map(function (e) {
       var label = e.name + ' (' + e.oid + (e.critical ? ', critical' : ', noncritical') + ')';
       var value = e.value || '(present)';
-      return '<div class="row"' + hint(EXT_HELP[e.oid] || 'RFC 5280 §4.2: X.509 v3 extension.') + '><span class="lbl">' + esc(label) + '</span><span class="val">' + esc(value) + '<button class="copy-btn" data-v="' + esc(value) + '">Copy</button></span></div>';
+      var h = EXT_HELP[e.oid] || 'RFC 5280 §4.2: X.509 v3 extension.';
+      return '<div class="row"' + hint(h) + '><span class="lbl">' + esc(label) + help(h) + '</span><span class="val">' + esc(value) + '<button class="copy-btn" data-v="' + esc(value) + '">Copy</button></span></div>';
     }).join('');
   }
 
@@ -142,8 +152,9 @@
 
   // ── Certificate view ────────────────────────────────────────────────────────
 
-  function renderCerts(certs, warningDays) {
+  function renderCerts(certs, warningDays, targetId) {
     var active = 0;
+    targetId = targetId || 'app';
 
     function banner(c) {
       var labels = { valid: 'Valid', expired: 'Expired', 'expiring-soon': 'Expiring Soon', 'not-yet-valid': 'Not Yet Valid' };
@@ -185,7 +196,7 @@
       var panels = certs.map(function (c, i) {
         return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCert(c) + '</div>';
       }).join('');
-      document.getElementById('app').innerHTML = tabs + panels;
+      document.getElementById(targetId).innerHTML = tabs + panels;
 
       document.querySelectorAll('.tab').forEach(function (b) {
         b.addEventListener('click', function () { active = parseInt(b.dataset.i, 10); render(); });
@@ -251,16 +262,27 @@
     }
   }
 
-  function renderKeys(keys) {
+  function renderKeys(keys, targetId) {
+    targetId = targetId || 'app';
     var html = keys.map(function (k) {
       return '<div class="badge-type">' + esc(k.kind.toUpperCase()) + ' KEY</div>'
         + section('cert.publicKey', 'Public Key', row('key.algorithm', 'Algorithm', k.algorithm + (k.keySize ? ' ' + k.keySize + ' bit' : '') + (k.curve ? ' ' + k.curve : ''))
           + row('key.format', 'Format', k.format)
           + row('key.encrypted', 'Encrypted', k.encrypted ? 'Yes' : '')
           + row('key.note', 'Note', k.note)
+          + (k.spkiFingerprints ? section('Fingerprints', fpRow('key.spki.sha1', 'SPKI SHA-1', k.spkiFingerprints.sha1) + fpRow('key.spki.sha256', 'SPKI SHA-256', k.spkiFingerprints.sha256)) : '')
           + row('key.publicKeyPem', 'Public Key PEM', k.publicKeyPem));
     }).join('');
-    document.getElementById('app').innerHTML = html;
+    document.getElementById(targetId).innerHTML = html;
+    document.querySelectorAll('#' + targetId + ' .copy-btn').forEach(function (b) {
+      b.addEventListener('click', function () { vscode.postMessage({ command: 'copyText', data: b.dataset.v }); });
+    });
+  }
+
+  function renderBundle(data) {
+    document.getElementById('app').innerHTML = '<h2>Certificates</h2><div id="certBundle"></div><h2>Keys</h2><div id="keyBundle"></div>';
+    renderCerts(data.certs, data.warningDays, 'certBundle');
+    renderKeys(data.keys, 'keyBundle');
   }
 
   // ── Error view ───────────────────────────────────────────────────────────────
@@ -278,6 +300,7 @@
 
   switch (doc.type) {
     case 'certificates': renderCerts(doc.certs, doc.warningDays); break;
+    case 'bundle': renderBundle(doc); break;
     case 'csr': renderCsrs(doc.csrs); break;
     case 'crl': renderCrl(doc.crl); break;
     case 'keys': renderKeys(doc.keys); break;

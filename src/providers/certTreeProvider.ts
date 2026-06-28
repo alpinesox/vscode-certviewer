@@ -132,9 +132,36 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
       }
 
       if (parsed.type === "keys") {
-        return parsed.items.map((key, idx) => {
+        return this.keyItems(parsed.items);
+      }
+
+      if (parsed.type === "bundle") {
+        return [
+          ...parsed.certificates.map((cert, idx) => this.certItem(cert, parsed.certificates.length, idx)),
+          ...this.keyItems(parsed.keys),
+        ];
+      }
+
+      if (parsed.type === "error") {
+        throw new Error(parsed.detail ?? parsed.message);
+      }
+
+      return parsed.items.map((cert, idx) => this.certItem(cert, parsed.items.length, idx));
+    } catch {
+      const errItem = new CertTreeItem(
+        "Failed to parse file",
+        vscode.TreeItemCollapsibleState.None,
+        "field"
+      );
+      errItem.iconPath = new vscode.ThemeIcon("error");
+      return [errItem];
+    }
+  }
+
+  private keyItems(keys: KeyInfo[]): CertTreeItem[] {
+    return keys.map((key, idx) => {
           const item = new CertTreeItem(
-            parsed.items.length > 1 ? `[${idx + 1}] ${key.algorithm} ${key.kind} key` : `${key.algorithm} ${key.kind} key`,
+            keys.length > 1 ? `[${idx + 1}] ${key.algorithm} ${key.kind} key` : `${key.algorithm} ${key.kind} key`,
             vscode.TreeItemCollapsibleState.Collapsed,
             "key",
             undefined,
@@ -146,37 +173,23 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
           item.tooltip = `${key.algorithm} ${key.kind} key (${key.format})`;
           return item;
         });
-      }
+  }
 
-      if (parsed.type === "error") {
-        throw new Error(parsed.detail ?? parsed.message);
-      }
-
-      return parsed.items.map((cert, idx) => {
-        const displayName = getCertDisplayName(cert.subject, cert.serialNumber);
-        const status = getCertificateStatus(cert);
-        const item = new CertTreeItem(
-          parsed.items.length > 1 ? `[${idx + 1}] ${displayName}` : displayName,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          "cert",
-          undefined,
-          cert,
-          undefined
-        );
-        item.description = this.getStatusDescription(cert);
-        item.iconPath = this.getStatusIcon(status);
-        item.tooltip = this.buildCertTooltip(cert);
-        return item;
-      });
-    } catch {
-      const errItem = new CertTreeItem(
-        "Failed to parse file",
-        vscode.TreeItemCollapsibleState.None,
-        "field"
-      );
-      errItem.iconPath = new vscode.ThemeIcon("error");
-      return [errItem];
-    }
+  private certItem(cert: CertificateInfo, total: number, idx: number): CertTreeItem {
+    const displayName = getCertDisplayName(cert.subject, cert.serialNumber);
+    const status = getCertificateStatus(cert);
+    const item = new CertTreeItem(
+      total > 1 ? `[${idx + 1}] ${displayName}` : displayName,
+      vscode.TreeItemCollapsibleState.Collapsed,
+      "cert",
+      undefined,
+      cert,
+      undefined
+    );
+    item.description = this.getStatusDescription(cert);
+    item.iconPath = this.getStatusIcon(status);
+    item.tooltip = this.buildCertTooltip(cert);
+    return item;
   }
 
   private getCertFields(cert: CertificateInfo): CertTreeItem[] {
@@ -208,6 +221,7 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
       ["Size", key.keySize ? `${key.keySize} bit` : undefined],
       ["Curve", key.curve],
       ["Encrypted", key.encrypted ? "Yes" : undefined],
+      ["SPKI SHA-256", key.spkiFingerprints ? `${key.spkiFingerprints.sha256.slice(0, 24)}...` : undefined],
     ];
 
     return fields.filter(([, value]) => value).map(([name, value]) => {

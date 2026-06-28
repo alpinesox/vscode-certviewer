@@ -71,6 +71,11 @@ export function buildWebviewHtml(
     .error-detail{font-family:var(--vscode-editor-font-family,monospace);font-size:.85em;
                   white-space:pre-wrap;word-break:break-all;
                   color:var(--vscode-descriptionForeground)}
+    .help{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;width:14px;height:14px;border-radius:50%;
+          border:1px solid var(--vscode-descriptionForeground);color:var(--vscode-descriptionForeground);font-size:10px;font-weight:700;position:relative}
+    .help:hover::after,.help:focus::after{content:attr(data-help);position:absolute;z-index:10;left:18px;top:-4px;width:320px;
+          padding:8px;border:1px solid var(--vscode-panel-border);border-radius:6px;background:var(--vscode-editorHoverWidget-background);
+          color:var(--vscode-editorHoverWidget-foreground);box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:12px;font-weight:400;line-height:1.35;text-transform:none;letter-spacing:normal}
   </style>
 </head>
 <body>
@@ -87,6 +92,8 @@ function buildPayload(doc: ParsedDocument, warningDays: number): unknown {
   switch (doc.type) {
     case "certificates":
       return { type: "certificates", certs: doc.items.map(c => serializeCert(c, warningDays)), warningDays };
+    case "bundle":
+      return { type: "bundle", certs: doc.certificates.map(c => serializeCert(c, warningDays)), keys: doc.keys, warningDays };
     case "csr":
       return { type: "csr", csrs: doc.items.map(serializeCsr) };
     case "crl":

@@ -3,7 +3,7 @@ import { splitPemBlocks, isPemContent, isDerBuffer, detectFormat } from "./pemPa
 import { parseCertificateFile } from "./certParser";
 import { extractCertsFromPkcs7 } from "./pkcs7Parser";
 import { parseCsrFile } from "./csrParser";
-import { parseKeyFile } from "./keyParser";
+import { parseKeyFile, parseKeyPemBlocks } from "./keyParser";
 import { ParsedDocument } from "../models/parsedDocument";
 import { assertWithinInputLimit } from "./limits";
 
@@ -34,11 +34,17 @@ export function parseDocument(raw: Uint8Array, filename: string): ParsedDocument
       }
 
       const blocks = splitPemBlocks(text);
-      if (blocks.some(block => block.type === "CERTIFICATE")) {
+      const hasCertificates = blocks.some(block => block.type === "CERTIFICATE");
+      const hasKeys = blocks.some(block => /(?:^| )PRIVATE KEY$/.test(block.type) || /(?:^| )PUBLIC KEY$/.test(block.type));
+      if (hasCertificates && hasKeys) {
+        return { type: "bundle", certificates: parseCertificateFile(text), keys: parseKeyPemBlocks(text) };
+      }
+
+      if (hasCertificates) {
         return { type: "certificates", items: parseCertificateFile(text) };
       }
 
-      if (/-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/.test(text) || /-----BEGIN (?:[A-Z ]+ )?PUBLIC KEY-----/.test(text)) {
+      if (hasKeys) {
         return { type: "keys", items: parseKeyFile(raw, filename) };
       }
 

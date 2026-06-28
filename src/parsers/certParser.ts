@@ -15,9 +15,22 @@ const EXTENDED_KEY_USAGE_OID: Record<string, string> = {
   "1.3.6.1.5.5.7.3.2": "TLS Web Client Authentication",
   "1.3.6.1.5.5.7.3.3": "Code Signing",
   "1.3.6.1.5.5.7.3.4": "Email Protection",
+  "1.3.6.1.5.5.7.3.5": "IPsec End System",
+  "1.3.6.1.5.5.7.3.6": "IPsec Tunnel",
+  "1.3.6.1.5.5.7.3.7": "IPsec User",
   "1.3.6.1.5.5.7.3.8": "Time Stamping",
   "1.3.6.1.5.5.7.3.9": "OCSP Signing",
+  "1.3.6.1.5.5.7.3.10": "DVCS",
+  "1.3.6.1.5.5.7.3.13": "EAP over PPP",
+  "1.3.6.1.5.5.7.3.14": "EAP over LAN",
+  "1.3.6.1.5.5.7.3.17": "IPsec IKE",
   "1.3.6.1.5.5.7.3.21": "SSH Client",
+  "1.3.6.1.5.5.7.3.22": "SSH Server",
+  "1.3.6.1.5.5.7.3.36": "Document Signing",
+  "1.3.6.1.4.1.311.10.3.4": "Encrypting File System",
+  "1.3.6.1.4.1.311.10.3.12": "Document Signing",
+  "1.3.6.1.4.1.311.20.2.2": "Smart Card Logon",
+  "1.3.6.1.4.1.311.21.19": "Directory Service Email Replication",
   "2.5.29.37.0": "Any Extended Key Usage",
 };
 
@@ -42,20 +55,65 @@ const TLS_FEATURES: Record<number, string> = {
 };
 
 const OID_NAMES: Record<string, string> = {
+  "2.5.4.3": "Common Name",
+  "2.5.4.5": "Serial Number Attribute",
+  "2.5.4.6": "Country Name",
+  "2.5.4.7": "Locality Name",
+  "2.5.4.8": "State or Province Name",
+  "2.5.4.10": "Organization Name",
+  "2.5.4.11": "Organizational Unit Name",
+  "2.5.4.15": "Business Category",
+  "2.5.4.17": "Postal Code",
+  "2.5.4.97": "Organization Identifier",
   "2.5.29.9": "Subject Directory Attributes",
   "2.5.29.14": "Subject Key Identifier",
   "2.5.29.15": "Key Usage",
+  "2.5.29.16": "Private Key Usage Period",
   "2.5.29.17": "Subject Alternative Name",
   "2.5.29.18": "Issuer Alternative Name",
   "2.5.29.19": "Basic Constraints",
+  "2.5.29.20": "CRL Number",
+  "2.5.29.21": "CRL Reason",
+  "2.5.29.23": "Hold Instruction Code",
+  "2.5.29.24": "Invalidity Date",
+  "2.5.29.27": "Delta CRL Indicator",
+  "2.5.29.28": "Issuing Distribution Point",
   "2.5.29.30": "Name Constraints",
   "2.5.29.31": "CRL Distribution Points",
   "2.5.29.32": "Certificate Policies",
+  "2.5.29.32.0": "Any Policy",
+  "2.5.29.33": "Policy Mappings",
   "2.5.29.35": "Authority Key Identifier",
+  "2.5.29.36": "Policy Constraints",
   "2.5.29.37": "Extended Key Usage",
+  "2.5.29.54": "Inhibit Any Policy",
   "2.5.29.46": "Freshest CRL",
+  "1.3.6.1.5.5.7.1.3": "Qualified Certificate Statements",
+  "1.3.6.1.5.5.7.1.11": "Subject Information Access",
   "1.3.6.1.5.5.7.1.1": "Authority Information Access",
   "1.3.6.1.5.5.7.1.24": "TLS Feature",
+  "1.3.6.1.4.1.11129.2.4.2": "Signed Certificate Timestamps",
+  "1.3.6.1.4.1.11129.2.4.3": "CT Poison",
+  "1.3.6.1.4.1.11129.2.4.4": "CT Precertificate Signer",
+  "1.3.6.1.4.1.311.20.2": "Certificate Template Name",
+  "1.3.6.1.4.1.311.21.7": "Certificate Template Information",
+  "1.3.6.1.4.1.311.21.10": "Application Policies",
+  "1.3.6.1.4.1.311.21.1": "CA Version",
+  "1.3.6.1.4.1.311.21.2": "Previous CA Certificate Hash",
+  "1.3.6.1.4.1.311.21.4": "Next CRL Publish",
+  "1.3.6.1.4.1.311.21.14": "Published CRL Locations",
+  "1.3.6.1.4.1.311.25.1": "Microsoft DS Object GUID",
+  "1.2.840.113549.1.9.1": "Email Address",
+  "1.2.840.113549.1.9.15": "S/MIME Capabilities",
+  "1.2.840.113549.1.9.16.2.47": "Signing Certificate V2",
+  "2.23.140.1.1": "CA/Browser Forum Domain Validated",
+  "2.23.140.1.2.1": "CA/Browser Forum Organization Validated",
+  "2.23.140.1.2.2": "CA/Browser Forum Individual Validated",
+  "2.23.140.1.2.3": "CA/Browser Forum Extended Validated",
+  "2.23.140.1.2.2.7": "CA/Browser Forum S/MIME Sponsor Validated",
+  "2.23.140.1.2.2.8": "CA/Browser Forum S/MIME Mailbox Validated",
+  "2.23.140.1.2.2.9": "CA/Browser Forum S/MIME Organization Validated",
+  "2.23.140.1.2.2.10": "CA/Browser Forum S/MIME Individual Validated",
 };
 
 const FORGE_EXTENSION_OIDS: Record<string, string> = {
@@ -429,6 +487,9 @@ function describeExtension(ext: forge.pki.Certificate["extensions"][number]): st
   if (String(anyExt.id) === "1.3.6.1.5.5.7.1.24") {
     return describeTlsFeatures(ext.value);
   }
+  if (String(anyExt.id) === "1.3.6.1.4.1.11129.2.4.2") {
+    return describeSignedCertificateTimestamps(ext.value);
+  }
   if (ext.value) return describeDerValue(ext.value);
   return JSON.stringify(anyExt, (_key, value) => typeof value === "string" && value.length > 256 ? `${value.slice(0, 256)}…` : value);
 }
@@ -489,9 +550,49 @@ function describeCertificatePolicies(value: string): string {
   const policies: string[] = [];
   for (const policyInfo of root.value as forge.asn1.Asn1[]) {
     const oidNode = Array.isArray(policyInfo.value) ? policyInfo.value[0] as forge.asn1.Asn1 : undefined;
-    if (oidNode && typeof oidNode.value === "string") policies.push(forge.asn1.derToOid(oidNode.value));
+    if (oidNode && typeof oidNode.value === "string") {
+      const oid = forge.asn1.derToOid(oidNode.value);
+      policies.push(OID_NAMES[oid] ? `${OID_NAMES[oid]} (${oid})` : oid);
+    }
   }
   return policies.length ? policies.join(", ") : hex(value);
+}
+
+function describeSignedCertificateTimestamps(value: string): string {
+  const bytes = Buffer.from(value, "binary");
+  if (bytes.length < 2) return hex(value);
+  const listLength = bytes.readUInt16BE(0);
+  let offset = 2;
+  const end = Math.min(bytes.length, 2 + listLength);
+  const scts: string[] = [];
+  let index = 1;
+  while (offset + 2 <= end) {
+    const sctLength = bytes.readUInt16BE(offset);
+    offset += 2;
+    if (sctLength <= 0 || offset + sctLength > end) return hex(value);
+    const sct = bytes.subarray(offset, offset + sctLength);
+    offset += sctLength;
+    scts.push(describeSingleSct(sct, index++));
+  }
+  return scts.length ? scts.join("; ") : hex(value);
+}
+
+function describeSingleSct(sct: Buffer, index: number): string {
+  if (sct.length < 43) return `SCT ${index}: malformed (${sct.length} bytes)`;
+  const version = sct[0] === 0 ? "v1" : `version ${sct[0]}`;
+  const logId = sct.subarray(1, 33).toString("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
+  const timestamp = Number(sct.readBigUInt64BE(33));
+  const extensionsLengthOffset = 41;
+  const extensionsLength = sct.readUInt16BE(extensionsLengthOffset);
+  const sigOffset = extensionsLengthOffset + 2 + extensionsLength;
+  const sigAlg = sigOffset + 4 <= sct.length ? signatureSchemeName(sct[sigOffset], sct[sigOffset + 1]) : "unknown signature";
+  return `SCT ${index}: ${version}, logID ${logId}, timestamp ${new Date(timestamp).toISOString()}, ${sigAlg}`;
+}
+
+function signatureSchemeName(hash: number, signature: number): string {
+  const hashes: Record<number, string> = { 0: "none", 1: "MD5", 2: "SHA-1", 3: "SHA-224", 4: "SHA-256", 5: "SHA-384", 6: "SHA-512" };
+  const signatures: Record<number, string> = { 0: "anonymous", 1: "RSA", 2: "DSA", 3: "ECDSA" };
+  return `${hashes[hash] ?? `hash ${hash}`} with ${signatures[signature] ?? `signature ${signature}`}`;
 }
 
 function describeTlsFeatures(value: string): string {

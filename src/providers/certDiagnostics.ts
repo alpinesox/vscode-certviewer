@@ -94,8 +94,9 @@ export class CertDiagnosticsProvider implements vscode.Disposable {
   }
 
   private setDiagnostics(uri: vscode.Uri, parsed: ParsedDocument): void {
-    if (parsed.type === "certificates") {
-      this.collection.set(uri, parsed.items.flatMap((cert, certIndex) =>
+    if (parsed.type === "certificates" || parsed.type === "bundle") {
+      const certs = parsed.type === "certificates" ? parsed.items : parsed.certificates;
+      this.collection.set(uri, certs.flatMap((cert, certIndex) =>
         cert.findings.map(finding => diagnosticFromFinding(finding, certIndex, cert.subject.commonName ?? cert.serialNumber))
       ));
       return;
