@@ -18,6 +18,13 @@ export interface CrlDocument {
   thisUpdate: string;
   nextUpdate: string;
   revokedCount: number;
+  signatureAlgorithm?: string;
+  crlNumber?: string;
+  authorityKeyIdentifier?: string;
+  fingerprints?: {
+    sha1: string;
+    sha256: string;
+  };
   rawPem: string;
 }
 

@@ -218,8 +218,13 @@
         + section('csr.subject', 'Subject', nameFields(c.subject))
         + section('csr.publicKey', 'Public Key',
           row('csr.publicKey', 'Algorithm', c.pubKey + (c.keySize ? ' ' + c.keySize + ' bit' : ''))
+          + row('cert.publicKey.curve', 'Named Curve', c.keyCurve)
+          + row('cert.publicKey.exponent', 'Public Exponent', c.keyExponent)
           + row('csr.signatureAlgorithm', 'Signature Algorithm', c.sigAlg))
-        + (c.sans && c.sans.length ? section('cert.san', 'Subject Alternative Names', sanTags(c.sans)) : '');
+        + (c.sans && c.sans.length ? section('cert.san', 'Subject Alternative Names', tags('cert.san', c.sans)) : '')
+        + (c.requestedExtensions && c.requestedExtensions.length ? section('cert.extensions', 'Requested Extensions', tags('cert.extensions', c.requestedExtensions)) : '')
+        + (c.spkiFingerprints ? section('Fingerprints', fpRow('key.spki.sha1', 'SPKI SHA-1', c.spkiFingerprints.sha1) + fpRow('key.spki.sha256', 'SPKI SHA-256', c.spkiFingerprints.sha256)) : '')
+        + (c.publicKeyPem ? section('cert.publicKey', 'Public Key PEM', row('key.publicKeyPem', 'Public Key PEM', c.publicKeyPem)) : '');
     }
 
     function render() {
@@ -246,6 +251,10 @@
         row('crl.issuer', 'Issuer', data.issuer)
         + row('crl.thisUpdate', 'This Update', data.thisUpdate)
         + row('crl.nextUpdate', 'Next Update', data.nextUpdate)
+        + row('cert.signatureAlgorithm', 'Signature Algorithm', data.signatureAlgorithm)
+        + row('cert.extensions', 'CRL Number', data.crlNumber)
+        + row('cert.extensions', 'Authority Key Identifier', data.authorityKeyIdentifier)
+        + (data.fingerprints ? fpRow('cert.fingerprint.sha1', 'SHA-1', data.fingerprints.sha1) + fpRow('cert.fingerprint.sha256', 'SHA-256', data.fingerprints.sha256) : '')
         + (data.revokedCount >= 0 ? row('crl.revokedEntries', 'Revoked Entries', String(data.revokedCount)) : ''))
       + '<button class="link-btn" data-action="openRaw">Open raw \u2197</button>';
     document.getElementById('app').innerHTML = html;

@@ -14,7 +14,20 @@ import { parseDocument } from "../../parsers/documentParser";
 import { CertificateInfo, getCertificateStatus } from "../../models/certificate";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const load = (f: string): Buffer => fs.readFileSync(path.join(FIXTURES, f));
+const CERT_FIXTURES = {
+  "self-signed.pem": path.join(FIXTURES, "self-signed.pem"),
+  "chain.pem": path.join(FIXTURES, "chain.pem"),
+  "expired.pem": path.join(FIXTURES, "expired.pem"),
+  "self-signed.cer": path.join(FIXTURES, "self-signed.cer"),
+  "self-signed-der.cer": path.join(FIXTURES, "self-signed-der.cer"),
+  "self-signed.der": path.join(FIXTURES, "self-signed.der"),
+  "bundle.p7b": path.join(FIXTURES, "bundle.p7b"),
+  "bundle-der.p7b": path.join(FIXTURES, "bundle-der.p7b"),
+  "test.crl": path.join(FIXTURES, "test.crl"),
+  "bom.pem": path.join(FIXTURES, "bom.pem"),
+  "crlf.pem": path.join(FIXTURES, "crlf.pem"),
+} as const;
+const load = (f: keyof typeof CERT_FIXTURES): Buffer => fs.readFileSync(CERT_FIXTURES[f]);
 
 // ── Escenario: usuario abre un .pem estándar ──────────────────────────────────
 
@@ -130,6 +143,16 @@ suite("parseDocument — usuario abre .crl", () => {
     // extractCrlIssuer debe encontrar "Test CA" o "CertView Tests"
     assert.notStrictEqual(doc.issuer, "Unknown", "Issuer no fue extraído — extractCrlIssuer falló");
     assert.ok(doc.issuer.length > 0);
+  });
+
+  test("CRL muestra fechas, conteo, algoritmo y fingerprints", () => {
+    const doc = parseDocument(load("test.crl"), "test.crl");
+    assert.strictEqual(doc.type, "crl");
+    assert.notStrictEqual(doc.thisUpdate, "See raw file");
+    assert.notStrictEqual(doc.nextUpdate, "See raw file");
+    assert.ok(doc.revokedCount >= 0);
+    assert.ok(doc.signatureAlgorithm);
+    assert.match(doc.fingerprints?.sha256 ?? "", /^[A-F0-9:]+$/);
   });
 });
 

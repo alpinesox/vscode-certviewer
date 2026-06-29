@@ -27,44 +27,44 @@ export function buildWebviewHtml(
   <title>CertView</title>
   <style nonce="${nonce}">
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);
-         color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:16px}
-    .tabs{display:flex;gap:4px;border-bottom:1px solid var(--vscode-panel-border);margin-bottom:12px;padding-bottom:4px}
-    .tab{background:none;border:none;color:var(--vscode-foreground);cursor:pointer;padding:4px 12px;
-         border-radius:4px 4px 0 0;opacity:.6;font-size:var(--vscode-font-size)}
-    .tab.active{opacity:1;background:var(--vscode-tab-activeBackground);
-                border-bottom:2px solid var(--vscode-focusBorder)}
+    body{font-family:var(--vscode-font-family,system-ui,-apple-system,"Segoe UI",sans-serif);font-size:var(--vscode-font-size,13px);
+         color:var(--vscode-foreground,#d4d4d4);background:var(--vscode-editor-background,#1e1e1e);padding:16px}
+    .tabs{display:flex;gap:4px;border-bottom:1px solid var(--vscode-panel-border,#3c3c3c);margin-bottom:12px;padding-bottom:4px}
+    .tab{background:none;border:none;color:var(--vscode-foreground,#d4d4d4);cursor:pointer;padding:4px 12px;
+         border-radius:4px 4px 0 0;opacity:.6;font-size:var(--vscode-font-size,13px)}
+    .tab.active{opacity:1;background:var(--vscode-tab-activeBackground,#252526);
+                border-bottom:2px solid var(--vscode-focusBorder,#007fd4)}
     .panel{display:none}.panel.active{display:block}
     .banner{padding:8px 12px;border-radius:6px;margin-bottom:12px;font-weight:600}
     .banner.ok  {background:rgba(0,200,100,.15);color:#4ec994}
     .banner.warn{background:rgba(255,180,0,.15);color:#e5a500}
     .banner.err {background:rgba(220,50,50,.15);color:#f14c4c}
     .banner.info{background:rgba(100,150,255,.15);color:#82b1ff}
-    details{border:1px solid var(--vscode-panel-border);border-radius:6px;margin-bottom:8px;overflow:hidden}
-    summary{padding:8px 12px;background:var(--vscode-sideBarSectionHeader-background);
+    details{border:1px solid var(--vscode-panel-border,#3c3c3c);border-radius:6px;margin-bottom:8px;overflow:hidden}
+    summary{padding:8px 12px;background:var(--vscode-sideBarSectionHeader-background,#2d2d30);
             cursor:pointer;font-weight:600;font-size:.85em;text-transform:uppercase;letter-spacing:.04em;
             list-style:none}
     summary::-webkit-details-marker{display:none}
-    details[open] summary{border-bottom:1px solid var(--vscode-panel-border)}
+    details[open] summary{border-bottom:1px solid var(--vscode-panel-border,#3c3c3c)}
     .section-body{padding:4px 0}
     .row{display:grid;grid-template-columns:160px 1fr;gap:4px;padding:4px 12px;
-         border-bottom:1px solid var(--vscode-panel-border)}
+         border-bottom:1px solid var(--vscode-panel-border,#3c3c3c)}
     .row:last-child{border-bottom:none}
-    .lbl{color:var(--vscode-descriptionForeground);font-size:.9em;align-self:start;padding-top:1px}
-    .val{font-family:var(--vscode-editor-font-family,monospace);word-break:break-all;white-space:pre-wrap}
+    .lbl{color:var(--vscode-descriptionForeground,#9d9d9d);font-size:.9em;align-self:start;padding-top:1px}
+    .val{font-family:var(--vscode-editor-font-family,ui-monospace,SFMono-Regular,Consolas,monospace);word-break:break-all;white-space:pre-wrap}
     .mono{font-family:var(--vscode-editor-font-family,monospace)}
     .tags{display:flex;flex-wrap:wrap;gap:4px}
-    .tag{padding:2px 8px;border-radius:12px;background:var(--vscode-badge-background);
-         color:var(--vscode-badge-foreground);font-size:.8em}
+    .tag{padding:2px 8px;border-radius:12px;background:var(--vscode-badge-background,#4d4d4d);
+         color:var(--vscode-badge-foreground,#fff);font-size:.8em}
     .copy-btn{margin-left:8px;padding:1px 6px;background:none;cursor:pointer;
-              border:1px solid var(--vscode-panel-border);border-radius:4px;
-              color:var(--vscode-foreground);font-size:.78em}
+               border:1px solid var(--vscode-panel-border,#3c3c3c);border-radius:4px;
+               color:var(--vscode-foreground,#d4d4d4);font-size:.78em}
     .copy-btn:hover{background:var(--vscode-button-secondaryHoverBackground)}
     .link-btn{margin-top:8px;background:none;border:none;
-              color:var(--vscode-textLink-foreground);cursor:pointer;
+               color:var(--vscode-textLink-foreground,#3794ff);cursor:pointer;
               text-decoration:underline;font-size:.85em}
     .badge-type{display:inline-block;padding:3px 10px;border-radius:12px;
-                background:var(--vscode-badge-background);color:var(--vscode-badge-foreground);
+                 background:var(--vscode-badge-background,#4d4d4d);color:var(--vscode-badge-foreground,#fff);
                 font-size:.78em;font-weight:700;letter-spacing:.05em;margin-bottom:12px}
     .error-card{padding:16px;border:1px solid rgba(220,50,50,.4);border-radius:6px;
                 background:rgba(220,50,50,.08)}
@@ -73,10 +73,10 @@ export function buildWebviewHtml(
                   white-space:pre-wrap;word-break:break-all;
                   color:var(--vscode-descriptionForeground)}
     .help{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;width:14px;height:14px;border-radius:50%;
-          border:1px solid var(--vscode-descriptionForeground);color:var(--vscode-descriptionForeground);font-size:10px;font-weight:700;position:relative}
+          border:1px solid var(--vscode-descriptionForeground,#9d9d9d);color:var(--vscode-descriptionForeground,#9d9d9d);font-size:10px;font-weight:700;position:relative}
     .help:hover::after,.help:focus::after{content:attr(data-help);position:absolute;z-index:10;left:18px;top:-4px;width:320px;
-          padding:8px;border:1px solid var(--vscode-panel-border);border-radius:6px;background:var(--vscode-editorHoverWidget-background);
-          color:var(--vscode-editorHoverWidget-foreground);box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:12px;font-weight:400;line-height:1.35;text-transform:none;letter-spacing:normal}
+          padding:8px;border:1px solid var(--vscode-panel-border,#3c3c3c);border-radius:6px;background:var(--vscode-editorHoverWidget-background,#252526);
+          color:var(--vscode-editorHoverWidget-foreground,#d4d4d4);box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:12px;font-weight:400;line-height:1.35;text-transform:none;letter-spacing:normal}
   </style>
 </head>
 <body>
@@ -98,7 +98,7 @@ function buildPayload(doc: ParsedDocument, warningDays: number): unknown {
     case "csr":
       return { type: "csr", csrs: doc.items.map(serializeCsr) };
     case "crl":
-      return { type: "crl", crl: { issuer: doc.issuer, thisUpdate: doc.thisUpdate, nextUpdate: doc.nextUpdate, revokedCount: doc.revokedCount } };
+      return { type: "crl", crl: { issuer: doc.issuer, thisUpdate: doc.thisUpdate, nextUpdate: doc.nextUpdate, revokedCount: doc.revokedCount, signatureAlgorithm: doc.signatureAlgorithm, crlNumber: doc.crlNumber, authorityKeyIdentifier: doc.authorityKeyIdentifier, fingerprints: doc.fingerprints } };
     case "keys":
       return { type: "keys", keys: doc.items };
     case "error":
@@ -120,8 +120,13 @@ function serializeCsr(csr: CsrInfo): Record<string, unknown> {
     },
     pubKey: csr.publicKeyAlgorithm,
     keySize: csr.publicKeySize,
+    keyCurve: csr.publicKeyCurve,
+    keyExponent: csr.publicKeyExponent,
+    publicKeyPem: csr.publicKeyPem,
+    spkiFingerprints: csr.spkiFingerprints,
     sigAlg: csr.signatureAlgorithm,
     sans: csr.subjectAltNames,
+    requestedExtensions: csr.requestedExtensions,
   };
 }
 
