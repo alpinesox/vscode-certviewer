@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as crypto from "crypto";
 import { ParsedDocument } from "../models/parsedDocument";
 import { CertificateInfo, getCertificateStatus } from "../models/certificate";
 import { CsrInfo } from "../parsers/csrParser";
@@ -159,6 +160,8 @@ function serializeCert(cert: CertificateInfo, warningDays: number): Record<strin
     sha256: cert.fingerprints.sha256,
     pubKey: cert.publicKeyAlgorithm,
     keySize: cert.publicKeySize,
+    keyCurve: cert.publicKeyCurve,
+    keyExponent: cert.publicKeyExponent,
     sigAlg: cert.signatureAlgorithm,
     selfSigned: cert.isSelfSigned,
     isCA: cert.isCA,
@@ -173,10 +176,7 @@ function serializeCert(cert: CertificateInfo, warningDays: number): Record<strin
 
 
 function getNonce(): string {
-  let t = "";
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) { t += chars[Math.floor(Math.random() * chars.length)]; }
-  return t;
+  return crypto.randomBytes(16).toString("base64url");
 }
 
 function escapeAttr(s: string): string {

@@ -53,6 +53,8 @@ export interface CertificateInfo {
   signatureAlgorithm: string;
   publicKeyAlgorithm: string;
   publicKeySize?: number;
+  publicKeyCurve?: string;
+  publicKeyExponent?: string;
   publicKeyPem?: string;
   fingerprints: {
     sha1: string;

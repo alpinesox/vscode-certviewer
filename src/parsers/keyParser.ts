@@ -7,6 +7,7 @@ export interface KeyInfo {
   algorithm: string;
   keySize?: number;
   curve?: string;
+  publicExponent?: string;
   format: string;
   publicKeyPem?: string;
   spkiFingerprints?: {
@@ -113,7 +114,8 @@ function keyInfoFromObject(key: crypto.KeyObject, format: string): KeyInfo {
     kind: key.type === "private" ? "private" : "public",
     algorithm: (key.asymmetricKeyType ?? "unknown").toUpperCase(),
     keySize: "modulusLength" in details ? details.modulusLength : undefined,
-    curve: "namedCurve" in details ? details.namedCurve : undefined,
+    curve: "namedCurve" in details && typeof details.namedCurve === "string" ? friendlyCurveName(details.namedCurve) : undefined,
+    publicExponent: "publicExponent" in details && details.publicExponent !== undefined ? details.publicExponent.toString() : undefined,
     format,
     publicKeyPem,
     spkiFingerprints: {
@@ -121,6 +123,14 @@ function keyInfoFromObject(key: crypto.KeyObject, format: string): KeyInfo {
       sha256: fingerprint(spkiDer, "sha256"),
     },
   };
+}
+
+function friendlyCurveName(curve: string): string {
+  const normalized = curve.toLowerCase();
+  if (normalized === "prime256v1" || normalized === "secp256r1") return "secp256r1 / prime256v1 / P-256";
+  if (normalized === "secp384r1") return "secp384r1 / P-384";
+  if (normalized === "secp521r1") return "secp521r1 / P-521";
+  return curve;
 }
 
 function fingerprint(bytes: Buffer, algorithm: "sha1" | "sha256"): string {

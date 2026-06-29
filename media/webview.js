@@ -42,6 +42,8 @@
     'cert.serialNumber': 'RFC 5280 §4.1.2.2: CA-assigned positive serial number unique per issuer.',
     'cert.version': 'RFC 5280 §4.1.2.1: certificate version; extensions require v3.',
     'cert.publicKey.summary': 'RFC 5280 §4.1.2.7: subject public key algorithm and encoded key material.',
+    'cert.publicKey.curve': 'Named curve from the SubjectPublicKeyInfo parameters when the certificate uses an elliptic-curve key.',
+    'cert.publicKey.exponent': 'RSA public exponent from the SubjectPublicKeyInfo public key value.',
     'cert.signatureAlgorithm': 'RFC 5280 §4.1.1.2 and §4.1.2.3: algorithm used by the issuer to sign the certificate.',
     'cert.selfSigned': 'RFC 5280 §6: self-signed status alone does not establish trust.',
     'cert.isCA': 'RFC 5280 §4.2.1.9: CA status is indicated by Basic Constraints CA=true.',
@@ -50,6 +52,7 @@
     'cert.fingerprint.sha256': 'Local SHA-256 digest over DER certificate bytes for comparison and inventory.',
     'key.kind': 'Public or private key object parsed from PEM, DER, or JWK input.',
     'key.algorithm': 'RFC 5280 §4.1.2.7 for SubjectPublicKeyInfo; RFC 5958 for private-key packages.',
+    'key.publicExponent': 'RSA public exponent from the parsed public key or derived public key.',
     'key.format': 'RFC 7468 covers textual PEM; ITU-T X.690 / ISO/IEC 8825-1 covers DER; RFC 7517 covers JWK.',
     'key.encrypted': 'RFC 5958: EncryptedPrivateKeyInfo indicates password-based protection; CertView does not decrypt it.',
     'key.note': 'Security note for key handling in this viewer.',
@@ -180,11 +183,13 @@
           row('cert.serialNumber', 'Serial Number', c.serial)
           + row('cert.version', 'Version', 'v' + c.version)
           + row('cert.publicKey.summary', 'Public Key', c.pubKey + (c.keySize ? ' ' + c.keySize + ' bit' : ''))
+          + row('cert.publicKey.curve', 'Named Curve', c.keyCurve)
+          + row('cert.publicKey.exponent', 'Public Exponent', c.keyExponent)
           + row('cert.signatureAlgorithm', 'Signature Algorithm', c.sigAlg)
           + row('cert.selfSigned', 'Self-Signed', c.selfSigned ? 'Yes' : 'No')
           + row('cert.isCA', 'CA Certificate', c.isCA ? 'Yes' : 'No'))
         + (c.publicKeyPem ? section('cert.publicKey', 'Public Key', row('cert.publicKey.pem', 'Public Key PEM', c.publicKeyPem)) : '')
-        + '<button class="link-btn" id="openRawBtn">Open as text \u2197</button>';
+        + '<button class="link-btn" data-action="openRaw">Open as text \u2197</button>';
     }
 
     function render() {
@@ -197,17 +202,7 @@
         return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCert(c) + '</div>';
       }).join('');
       document.getElementById(targetId).innerHTML = tabs + panels;
-
-      document.querySelectorAll('.tab').forEach(function (b) {
-        b.addEventListener('click', function () { active = parseInt(b.dataset.i, 10); render(); });
-      });
-      document.querySelectorAll('.copy-btn').forEach(function (b) {
-        b.addEventListener('click', function () { vscode.postMessage({ command: 'copyText', data: b.dataset.v }); });
-      });
-      var openBtn = document.getElementById('openRawBtn');
-      if (openBtn) {
-        openBtn.addEventListener('click', function () { vscode.postMessage({ command: 'openRaw' }); });
-      }
+      wireActions(targetId, function (button) { active = parseInt(button.dataset.i, 10); render(); });
     }
 
     render();
@@ -237,9 +232,7 @@
         return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCsr(c) + '</div>';
       }).join('');
       document.getElementById('app').innerHTML = tabsHtml + panels;
-      document.querySelectorAll('.tab').forEach(function (b) {
-        b.addEventListener('click', function () { active = parseInt(b.dataset.i, 10); render(); });
-      });
+      wireActions('app', function (button) { active = parseInt(button.dataset.i, 10); render(); });
     }
 
     render();
@@ -254,12 +247,9 @@
         + row('crl.thisUpdate', 'This Update', data.thisUpdate)
         + row('crl.nextUpdate', 'Next Update', data.nextUpdate)
         + (data.revokedCount >= 0 ? row('crl.revokedEntries', 'Revoked Entries', String(data.revokedCount)) : ''))
-      + '<button class="link-btn" id="openRawBtn">Open raw \u2197</button>';
+      + '<button class="link-btn" data-action="openRaw">Open raw \u2197</button>';
     document.getElementById('app').innerHTML = html;
-    var btn = document.getElementById('openRawBtn');
-    if (btn) {
-      btn.addEventListener('click', function () { vscode.postMessage({ command: 'openRaw' }); });
-    }
+    wireActions('app');
   }
 
   function renderKeys(keys, targetId) {
@@ -268,14 +258,35 @@
       return '<div class="badge-type">' + esc(k.kind.toUpperCase()) + ' KEY</div>'
         + section('cert.publicKey', 'Public Key', row('key.algorithm', 'Algorithm', k.algorithm + (k.keySize ? ' ' + k.keySize + ' bit' : '') + (k.curve ? ' ' + k.curve : ''))
           + row('key.format', 'Format', k.format)
+          + row('key.publicExponent', 'Public Exponent', k.publicExponent)
           + row('key.encrypted', 'Encrypted', k.encrypted ? 'Yes' : '')
           + row('key.note', 'Note', k.note)
           + (k.spkiFingerprints ? section('Fingerprints', fpRow('key.spki.sha1', 'SPKI SHA-1', k.spkiFingerprints.sha1) + fpRow('key.spki.sha256', 'SPKI SHA-256', k.spkiFingerprints.sha256)) : '')
           + row('key.publicKeyPem', 'Public Key PEM', k.publicKeyPem));
     }).join('');
     document.getElementById(targetId).innerHTML = html;
-    document.querySelectorAll('#' + targetId + ' .copy-btn').forEach(function (b) {
-      b.addEventListener('click', function () { vscode.postMessage({ command: 'copyText', data: b.dataset.v }); });
+    wireActions(targetId);
+  }
+
+  function wireActions(targetId, onTab) {
+    var root = document.getElementById(targetId);
+    if (!root || root.dataset.actionsWired === 'true') return;
+    root.dataset.actionsWired = 'true';
+    root.addEventListener('click', function (event) {
+      var target = event.target;
+      if (!target || !target.closest) return;
+      var copy = target.closest('.copy-btn');
+      if (copy && root.contains(copy)) {
+        vscode.postMessage({ command: 'copyText', data: copy.dataset.v });
+        return;
+      }
+      var tab = target.closest('.tab');
+      if (tab && root.contains(tab) && onTab) {
+        onTab(tab);
+        return;
+      }
+      var openRaw = target.closest('[data-action="openRaw"]');
+      if (openRaw && root.contains(openRaw)) vscode.postMessage({ command: 'openRaw' });
     });
   }
 

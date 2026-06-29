@@ -200,6 +200,8 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
       ["Valid To", cert.validity.notAfter.toLocaleDateString()],
       ["Serial", cert.serialNumber.slice(0, 20) + "..."],
       ["SHA-256", cert.fingerprints.sha256.slice(0, 24) + "..."],
+      ["Curve", cert.publicKeyCurve ?? "-"],
+      ["Public Exponent", cert.publicKeyExponent ?? "-"],
     ];
 
     return fields.map(([key, value]) => {
@@ -220,6 +222,7 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
       ["Format", key.format],
       ["Size", key.keySize ? `${key.keySize} bit` : undefined],
       ["Curve", key.curve],
+      ["Public Exponent", key.publicExponent],
       ["Encrypted", key.encrypted ? "Yes" : undefined],
       ["SPKI SHA-256", key.spkiFingerprints ? `${key.spkiFingerprints.sha256.slice(0, 24)}...` : undefined],
     ];

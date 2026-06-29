@@ -5,8 +5,16 @@ import * as forge from "node-forge";
 import { parseCertificateFile, parseX509Name } from "../../parsers/certParser";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const readText = (f: string): string => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
-const readBin = (f: string): Buffer => fs.readFileSync(path.join(FIXTURES, f));
+const CERT_FIXTURES = {
+  "ca.pem": path.join(FIXTURES, "ca.pem"),
+  "chain.pem": path.join(FIXTURES, "chain.pem"),
+  "ec-key.pem": path.join(FIXTURES, "ec-key.pem"),
+  "expired.pem": path.join(FIXTURES, "expired.pem"),
+  "self-signed.der": path.join(FIXTURES, "self-signed.der"),
+  "self-signed.pem": path.join(FIXTURES, "self-signed.pem"),
+};
+const readText = (f: keyof typeof CERT_FIXTURES): string => fs.readFileSync(CERT_FIXTURES[f], "utf-8");
+const readBin = (f: keyof typeof CERT_FIXTURES): Buffer => fs.readFileSync(CERT_FIXTURES[f]);
 
 interface TestCert {
   cert: forge.pki.Certificate;
@@ -54,13 +62,13 @@ function makeSctList(...scts: Buffer[]): Buffer {
   return Buffer.concat([uint16(body.length), body]);
 }
 
-function makeSct(options: { timestamp?: bigint; extensions?: Buffer; signature?: Buffer } = {}): Buffer {
+function makeSct(options: { timestamp?: bigint; extensions?: Buffer; signature?: Buffer; logId?: Buffer } = {}): Buffer {
   const extensions = options.extensions ?? Buffer.alloc(0);
   const signature = options.signature ?? Buffer.from([0xde, 0xad, 0xbe, 0xef]);
   const sct = Buffer.alloc(1 + 32 + 8 + 2 + extensions.length + 2 + 2 + signature.length);
   let offset = 0;
   sct[offset++] = 0;
-  Buffer.alloc(32, 0xab).copy(sct, offset);
+  (options.logId ?? Buffer.alloc(32, 0xab)).copy(sct, offset);
   offset += 32;
   sct.writeBigUInt64BE(options.timestamp ?? BigInt(Date.UTC(2024, 0, 1)), offset);
   offset += 8;
@@ -169,6 +177,10 @@ suite("certParser — self-signed PEM", () => {
     assert.strictEqual(certs[0].publicKeySize, 2048);
   });
 
+  test("has RSA public exponent", () => {
+    assert.strictEqual(certs[0].publicKeyExponent, "65537");
+  });
+
   test("has valid notBefore/notAfter dates", () => {
     assert.ok(certs[0].validity.notBefore instanceof Date);
     assert.ok(certs[0].validity.notAfter instanceof Date);
@@ -250,11 +262,13 @@ suite("certParser — path length constraints", () => {
 
 suite("certParser — signed certificate timestamps", () => {
   test("decodes a well-formed embedded SCT list", () => {
-    const cert = makeCertWithSctExtension(makeSctList(makeSct()));
+    const googleArgonLogId = Buffer.from("0E5794BCF3AEA93E331B2C9907B3F790DF9BC23D713225DD21A925AC61C54E21", "hex");
+    const cert = makeCertWithSctExtension(makeSctList(makeSct({ logId: googleArgonLogId })));
     const parsed = parseCertificateFile(cert.pem)[0];
     const ext = parsed.extensions.find(item => item.oid === "1.3.6.1.4.1.11129.2.4.2");
     assert.ok(ext);
     assert.ok(ext.value.includes("SCT 1: v1"), ext.value);
+    assert.ok(ext.value.includes("Google Argon2026h1"), ext.value);
     assert.ok(ext.value.includes("timestamp 2024-01-01T00:00:00.000Z"), ext.value);
     assert.ok(ext.value.includes("SHA-256 with ECDSA"), ext.value);
   });
@@ -323,6 +337,10 @@ suite("certParser — EC key cert", () => {
 
   test("has no key size (EC uses curve name)", () => {
     assert.ok(certs[0].publicKeyAlgorithm.includes("P-256") || certs[0].publicKeySize === undefined);
+  });
+
+  test("resolves named curve aliases", () => {
+    assert.strictEqual(certs[0].publicKeyCurve, "secp256r1 / prime256v1 / P-256");
   });
 });
 

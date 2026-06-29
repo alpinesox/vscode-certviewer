@@ -54,7 +54,37 @@ const TLS_FEATURES: Record<number, string> = {
   17: "status_request_v2",
 };
 
+const CT_LOG_NAMES: Record<string, string> = {
+  "0E:57:94:BC:F3:AE:A9:3E:33:1B:2C:99:07:B3:F7:90:DF:9B:C2:3D:71:32:25:DD:21:A9:25:AC:61:C5:4E:21": "Google Argon2026h1",
+  "CB:38:F7:15:89:7C:84:A1:44:5F:5B:C1:DD:FB:C9:6E:F2:9A:59:CD:47:0A:69:05:85:B0:CB:14:C3:14:58:E7": "Cloudflare Nimbus2026",
+  "19:86:D4:C7:28:AA:6F:FE:BA:03:6F:78:2A:4D:01:91:AA:CE:2D:72:31:0F:AE:CE:5D:70:41:2D:25:4C:C7:D4": "Let's Encrypt Oak2026h1",
+  "6C:FE:50:19:43:A8:5E:A9:16:BC:52:D1:33:E4:DC:C9:1E:F1:41:1C:7D:25:84:20:D1:73:80:9E:18:18:EB:3A": "Let's Encrypt Sycamore2026h2",
+  "64:11:C4:6C:A4:12:EC:A7:89:1C:A2:02:2E:00:BC:AB:4F:28:07:D4:1E:35:27:AB:EA:FE:D5:03:C9:7D:CD:F0": "DigiCert Wyvern2026h1",
+};
+
+const CURVE_NAMES: Record<string, string> = {
+  "1.2.840.10045.3.1.7": "secp256r1 / prime256v1 / P-256",
+  "1.3.132.0.34": "secp384r1 / P-384",
+  "1.3.132.0.35": "secp521r1 / P-521",
+  "1.3.132.0.10": "secp256k1",
+  "1.3.101.110": "X25519",
+  "1.3.101.111": "X448",
+  "1.3.101.112": "Ed25519",
+  "1.3.101.113": "Ed448",
+};
+
 const OID_NAMES: Record<string, string> = {
+  "1.2.840.10045.2.1": "Elliptic Curve Public Key",
+  "1.2.840.10045.3.1.7": "secp256r1 / prime256v1 / P-256",
+  "1.3.132.0.34": "secp384r1 / P-384",
+  "1.3.132.0.35": "secp521r1 / P-521",
+  "1.3.132.0.10": "secp256k1",
+  "1.3.101.110": "X25519",
+  "1.3.101.111": "X448",
+  "1.3.101.112": "Ed25519",
+  "1.3.101.113": "Ed448",
+  "1.2.840.113549.1.1.1": "RSA Encryption",
+  "1.2.840.113549.1.1.10": "RSASSA-PSS",
   "2.5.4.3": "Common Name",
   "2.5.4.5": "Serial Number Attribute",
   "2.5.4.6": "Country Name",
@@ -107,6 +137,7 @@ const OID_NAMES: Record<string, string> = {
   "1.2.840.113549.1.9.15": "S/MIME Capabilities",
   "1.2.840.113549.1.9.16.2.47": "Signing Certificate V2",
   "2.23.140.1.1": "CA/Browser Forum Domain Validated",
+  "2.23.140.1.2": "CA/Browser Forum Validation Level",
   "2.23.140.1.2.1": "CA/Browser Forum Organization Validated",
   "2.23.140.1.2.2": "CA/Browser Forum Individual Validated",
   "2.23.140.1.2.3": "CA/Browser Forum Extended Validated",
@@ -114,6 +145,7 @@ const OID_NAMES: Record<string, string> = {
   "2.23.140.1.2.2.8": "CA/Browser Forum S/MIME Mailbox Validated",
   "2.23.140.1.2.2.9": "CA/Browser Forum S/MIME Organization Validated",
   "2.23.140.1.2.2.10": "CA/Browser Forum S/MIME Individual Validated",
+  "2.23.140.1.31": "CA/Browser Forum Onion Domain Validated",
 };
 
 const FORGE_EXTENSION_OIDS: Record<string, string> = {
@@ -179,12 +211,12 @@ function parseSinglePem(pem: string): CertificateInfo {
   const x509any = x509 as any;
   const keyUsage = parseKeyUsage(parsedExtensions) ?? normalizeKeyUsage(x509any.keyUsage);
   const extendedKeyUsage = parseExtendedKeyUsage(parsedExtensions, x509any.extendedKeyUsage ?? []);
-  const { algorithm, keySize } = getPublicKeyInfo(x509.publicKey);
+  const publicKeyInfo = getPublicKeyInfo(x509.publicKey);
   const extensions = buildExtensions(x509, parsedExtensions);
   const basicConstraints = parseBasicConstraints(parsedExtensions);
   const nameConstraints = extensionValue(parsedExtensions, "2.5.29.30");
   const signatureAlgorithm = getSignatureAlgorithm(x509, pem);
-  const findings = validateCertificate(x509, subject, keyUsage, extendedKeyUsage, extensions, basicConstraints, algorithm, keySize, signatureAlgorithm);
+  const findings = validateCertificate(x509, subject, keyUsage, extendedKeyUsage, extensions, basicConstraints, publicKeyInfo.algorithm, publicKeyInfo.keySize, signatureAlgorithm);
 
   return {
     pem,
@@ -203,8 +235,10 @@ function parseSinglePem(pem: string): CertificateInfo {
     basicConstraints,
     nameConstraints,
     signatureAlgorithm,
-    publicKeyAlgorithm: algorithm,
-    publicKeySize: keySize,
+    publicKeyAlgorithm: publicKeyInfo.algorithm,
+    publicKeySize: publicKeyInfo.keySize,
+    publicKeyCurve: publicKeyInfo.curve,
+    publicKeyExponent: publicKeyInfo.exponent,
     publicKeyPem: x509.publicKey.export({ type: "spki", format: "pem" }).toString(),
     fingerprints: {
       sha1: x509.fingerprint.toUpperCase(),
@@ -383,16 +417,25 @@ function binaryToIp(value: string): string {
   return bytes.toString("hex").toUpperCase();
 }
 
-function getPublicKeyInfo(key: crypto.KeyObject): { algorithm: string; keySize?: number } {
+function getPublicKeyInfo(key: crypto.KeyObject): { algorithm: string; keySize?: number; curve?: string; exponent?: string } {
   try {
     const type = (key.asymmetricKeyType ?? "unknown").toUpperCase();
     const details = key.asymmetricKeyDetails ?? {};
     const keySize = "modulusLength" in details ? (details.modulusLength as number) : undefined;
-    const curve = "namedCurve" in details ? ` (${details.namedCurve})` : "";
-    return { algorithm: type + curve, keySize };
+    const curve = "namedCurve" in details && typeof details.namedCurve === "string" ? friendlyCurveName(details.namedCurve) : undefined;
+    const exponent = "publicExponent" in details && details.publicExponent !== undefined ? details.publicExponent.toString() : undefined;
+    return { algorithm: curve ? `${type} (${curve})` : type, keySize, curve, exponent };
   } catch {
     return { algorithm: "unknown" };
   }
+}
+
+function friendlyCurveName(curve: string): string {
+  const normalized = curve.toLowerCase();
+  if (normalized === "prime256v1" || normalized === "secp256r1") return "secp256r1 / prime256v1 / P-256";
+  if (normalized === "secp384r1") return "secp384r1 / P-384";
+  if (normalized === "secp521r1") return "secp521r1 / P-521";
+  return CURVE_NAMES[curve] ?? curve;
 }
 
 function getSignatureAlgorithm(x509: crypto.X509Certificate, pem: string): string {
@@ -560,7 +603,7 @@ function describeCertificatePolicies(value: string): string {
 
 function describeSignedCertificateTimestamps(value: string): string {
   try {
-    const bytes = Buffer.from(value, "binary");
+    const bytes = unwrapOctetString(Buffer.from(value, "binary"));
     if (bytes.length < 2) return hex(value);
     const listLength = bytes.readUInt16BE(0);
     if (bytes.length !== 2 + listLength) return hex(value);
@@ -587,6 +630,7 @@ function describeSingleSct(sct: Buffer, index: number): string {
   if (sct.length < 43) return `SCT ${index}: malformed (${sct.length} bytes)`;
   const version = sct[0] === 0 ? "v1" : `version ${sct[0]}`;
   const logId = sct.subarray(1, 33).toString("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
+  const logName = CT_LOG_NAMES[logId] ?? "unknown log";
   const timestamp = timestampToIso(sct.readBigUInt64BE(33));
   if (!timestamp) return `SCT ${index}: malformed timestamp`;
   const extensionsLengthOffset = 41;
@@ -596,7 +640,25 @@ function describeSingleSct(sct: Buffer, index: number): string {
   const signatureLength = sct.readUInt16BE(sigOffset + 2);
   if (sigOffset + 4 + signatureLength !== sct.length) return `SCT ${index}: malformed signature`;
   const sigAlg = signatureSchemeName(sct[sigOffset], sct[sigOffset + 1]);
-  return `SCT ${index}: ${version}, logID ${logId}, timestamp ${timestamp}, ${sigAlg}`;
+  return `SCT ${index}: ${version}, log ${logName}, logID ${logId}, timestamp ${timestamp}, ${sigAlg}`;
+}
+
+function unwrapOctetString(bytes: Buffer): Buffer {
+  if (bytes.length < 2 || bytes[0] !== 0x04) return bytes;
+  const length = derLength(bytes, 1);
+  if (!length || length.offset + length.length !== bytes.length) return bytes;
+  return bytes.subarray(length.offset);
+}
+
+function derLength(bytes: Buffer, offset: number): { length: number; offset: number } | undefined {
+  const first = bytes[offset];
+  if (first === undefined) return undefined;
+  if (first < 0x80) return { length: first, offset: offset + 1 };
+  const octets = first & 0x7f;
+  if (octets === 0 || octets > 4 || offset + 1 + octets > bytes.length) return undefined;
+  let length = 0;
+  for (let i = 0; i < octets; i++) length = (length << 8) + bytes[offset + 1 + i];
+  return { length, offset: offset + 1 + octets };
 }
 
 function timestampToIso(timestamp: bigint): string | undefined {
@@ -652,9 +714,13 @@ function formatIpConstraint(value: string): string {
 
 function asn1ScalarValue(node: forge.asn1.Asn1): string {
   if (typeof node.value !== "string") return "";
-  if (node.type === forge.asn1.Type.OID) return forge.asn1.derToOid(node.value);
+  if (node.type === forge.asn1.Type.OID) return namedOid(forge.asn1.derToOid(node.value));
   if (node.type === forge.asn1.Type.UTF8 || node.type === forge.asn1.Type.PRINTABLESTRING || node.type === forge.asn1.Type.IA5STRING) return node.value;
   return hex(node.value);
+}
+
+function namedOid(oid: string): string {
+  return OID_NAMES[oid] ? `${OID_NAMES[oid]} (${oid})` : oid;
 }
 
 function visitAsn1(node: forge.asn1.Asn1, visitor: (node: forge.asn1.Asn1) => void): void {
