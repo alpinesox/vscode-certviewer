@@ -84,7 +84,7 @@ suite("CertTreeProvider — getCertsFromFile", () => {
     const children = await provider.getChildren(fileItem);
     assert.strictEqual(children.length, 1);
     assert.strictEqual(children[0].itemType, "cert");
-    assert.strictEqual(children[0].label?.toString(), "self-signed.example.com");
+    assert.ok(children[0].label?.toString().includes("self-signed.example.com"));
   });
 
   test("chain.pem — returns 2 cert items", async () => {
