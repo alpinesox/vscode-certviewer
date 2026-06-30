@@ -52,14 +52,14 @@ export function buildWebviewHtml(
     .row:last-child{border-bottom:none}
     .lbl{color:var(--vscode-descriptionForeground,#9d9d9d);font-size:.9em;align-self:start;padding-top:1px}
     .val{font-family:var(--vscode-editor-font-family,ui-monospace,SFMono-Regular,Consolas,monospace);word-break:break-all;white-space:pre-wrap}
-    .mono{font-family:var(--vscode-editor-font-family,monospace)}
+    .mono{font-family:var(--vscode-editor-font-family,ui-monospace,SFMono-Regular,Consolas,monospace)}
     .tags{display:flex;flex-wrap:wrap;gap:4px}
     .tag{padding:2px 8px;border-radius:12px;background:var(--vscode-badge-background,#4d4d4d);
          color:var(--vscode-badge-foreground,#fff);font-size:.8em}
     .copy-btn{margin-left:8px;padding:1px 6px;background:none;cursor:pointer;
                border:1px solid var(--vscode-panel-border,#3c3c3c);border-radius:4px;
                color:var(--vscode-foreground,#d4d4d4);font-size:.78em}
-    .copy-btn:hover{background:var(--vscode-button-secondaryHoverBackground)}
+    .copy-btn:hover{background:var(--vscode-button-secondaryHoverBackground,#3a3d41)}
     .link-btn{margin-top:8px;background:none;border:none;
                color:var(--vscode-textLink-foreground,#3794ff);cursor:pointer;
               text-decoration:underline;font-size:.85em}
@@ -69,9 +69,9 @@ export function buildWebviewHtml(
     .error-card{padding:16px;border:1px solid rgba(220,50,50,.4);border-radius:6px;
                 background:rgba(220,50,50,.08)}
     .error-title{font-weight:700;color:#f14c4c;margin-bottom:8px}
-    .error-detail{font-family:var(--vscode-editor-font-family,monospace);font-size:.85em;
+    .error-detail{font-family:var(--vscode-editor-font-family,ui-monospace,SFMono-Regular,Consolas,monospace);font-size:.85em;
                   white-space:pre-wrap;word-break:break-all;
-                  color:var(--vscode-descriptionForeground)}
+                  color:var(--vscode-descriptionForeground,#9d9d9d)}
     .help{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;width:14px;height:14px;border-radius:50%;
           border:1px solid var(--vscode-descriptionForeground,#9d9d9d);color:var(--vscode-descriptionForeground,#9d9d9d);font-size:10px;font-weight:700;position:relative}
     .help:hover::after,.help:focus::after{content:attr(data-help);position:absolute;z-index:10;left:18px;top:-4px;width:320px;
