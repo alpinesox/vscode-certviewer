@@ -109,6 +109,14 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
 
   private async getCertsFromFile(uri: vscode.Uri): Promise<CertTreeItem[]> {
     try {
+      const ext = path.extname(uri.fsPath).toLowerCase();
+      if (ext === ".p12" || ext === ".pfx") {
+        const item = new CertTreeItem("PKCS#12 keystore - open file to inspect", vscode.TreeItemCollapsibleState.None, "field");
+        item.iconPath = new vscode.ThemeIcon("key");
+        item.tooltip = "PKCS#12 files may require a password prompt, so CertView parses them in the editor view.";
+        return [item];
+      }
+
       const stat = await vscode.workspace.fs.stat(uri);
       if (stat.size > MAX_INPUT_BYTES) {
         const item = new CertTreeItem("File too large to parse", vscode.TreeItemCollapsibleState.None, "field");
