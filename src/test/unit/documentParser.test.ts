@@ -124,8 +124,7 @@ suite("parseDocument — usuario abre .p7b", () => {
     const doc = parseDocument(load("bundle.p7b"), "bundle.p7b");
     assert.strictEqual(doc.type, "certificates");
     const cns = doc.items.map(c => c.subject.commonName);
-    assert.ok(cns.includes("leaf.example.com"));
-    assert.ok(cns.includes("Test CA"));
+    assert.deepStrictEqual(cns, ["leaf.example.com", "Test CA"]);
   });
 });
 
