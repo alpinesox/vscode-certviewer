@@ -9,7 +9,11 @@ import {
 import { parseCertificateFile } from "../../parsers/certParser";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/certs");
-const readText = (f: string): string => fs.readFileSync(path.join(FIXTURES, f), "utf-8");
+const CERT_FIXTURES = {
+  "expired.pem": path.join(FIXTURES, "expired.pem"),
+  "self-signed.pem": path.join(FIXTURES, "self-signed.pem"),
+};
+const readText = (f: keyof typeof CERT_FIXTURES): string => fs.readFileSync(CERT_FIXTURES[f], "utf-8");
 
 function makeCert(notBefore: Date, notAfter: Date): CertificateInfo {
   return {
@@ -25,10 +29,12 @@ function makeCert(notBefore: Date, notAfter: Date): CertificateInfo {
     extensions: [],
     signatureAlgorithm: "sha256WithRSAEncryption",
     publicKeyAlgorithm: "RSA",
+    publicKeyDisplay: "RSA-2048",
     publicKeySize: 2048,
     fingerprints: { sha1: "", sha256: "" },
     isSelfSigned: true,
     isCA: false,
+    findings: [],
   };
 }
 
@@ -104,8 +110,9 @@ suite("getCertificateStatus — with real fixtures", () => {
     assert.strictEqual(getCertificateStatus(cert), "expired");
   });
 
-  test("expiring-soon fixture returns 'expiring-soon'", () => {
-    const [cert] = parseCertificateFile(readText("expiring-soon.pem"));
+  test("synthetic near-expiry cert returns 'expiring-soon'", () => {
+    const now = new Date();
+    const cert = makeCert(new Date(now.getTime() - 86400000), new Date(now.getTime() + 10 * 86400000));
     assert.strictEqual(getCertificateStatus(cert, 30), "expiring-soon");
   });
 
@@ -126,8 +133,9 @@ suite("getDaysUntilExpiry", () => {
     assert.ok(getDaysUntilExpiry(cert) > 0);
   });
 
-  test("returns approximately 10 days for expiring-soon fixture", () => {
-    const [cert] = parseCertificateFile(readText("expiring-soon.pem"));
+  test("returns approximately 10 days for synthetic near-expiry cert", () => {
+    const now = new Date();
+    const cert = makeCert(new Date(now.getTime() - 86400000), new Date(now.getTime() + 10 * 86400000));
     const days = getDaysUntilExpiry(cert);
     assert.ok(days >= 0 && days <= 12, `Expected 0-12 days, got ${days}`);
   });
