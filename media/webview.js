@@ -4,6 +4,17 @@
   const vscode = acquireVsCodeApi();
   var el = document.getElementById('__cv');
   const doc = el ? JSON.parse(el.getAttribute('data-payload') || 'null') : null;
+  var state = vscode.getState ? (vscode.getState() || {}) : {};
+
+  function saveState(nextState) {
+    state = Object.assign({}, state, nextState);
+    if (vscode.setState) vscode.setState(state);
+  }
+
+  function numberInRange(value, min, max, fallback) {
+    var parsed = typeof value === 'number' ? value : parseInt(value, 10);
+    return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+  }
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -90,6 +101,13 @@
     return text ? '<span class="help" tabindex="0" role="note" data-help="' + esc(text) + '" title="' + esc(text) + '">?</span>' : '';
   }
 
+  function setReviewedHtml(targetId, html) {
+    // All untrusted values in html must be escaped before reaching this helper.
+    var target = document.getElementById(targetId);
+    if (!target) return;
+    target.replaceChildren(document.createRange().createContextualFragment(html));
+  }
+
   function row(fieldId, label, value) {
     if (arguments.length === 2) { value = label; label = fieldId; fieldId = label; }
     if (value === null || value === undefined || value === '') { return ''; }
@@ -164,10 +182,82 @@
       .map(function (pair) { return row(pair[0], pair[1], pair[2]); }).join('');
   }
 
+  function principalLabel(name) {
+    if (!name) return '(empty)';
+    return name.commonName || (name.org && name.org.length ? name.org.join(', ') : '') || (name.ou && name.ou.length ? name.ou.join(', ') : '') || '(unnamed)';
+  }
+
+  function normalizePrincipal(name) {
+    return JSON.stringify({
+      commonName: name && name.commonName || '',
+      org: name && name.org || [],
+      ou: name && name.ou || [],
+      country: name && name.country || [],
+      state: name && name.state || [],
+      locality: name && name.locality || [],
+      email: name && name.email || []
+    });
+  }
+
+  function samePrincipal(a, b) {
+    return normalizePrincipal(a) === normalizePrincipal(b);
+  }
+
+  function chainRole(cert, index) {
+    if (cert.selfSigned) return 'Root / self-signed';
+    if (cert.isCA) return 'Intermediate CA';
+    if (index === 0) return 'Leaf';
+    return 'Certificate';
+  }
+
+  function chainRelationship(cert, next) {
+    if (next) {
+      return samePrincipal(cert.issuer, next.subject)
+        ? 'Issuer matches next certificate'
+        : 'Issuer mismatch';
+    }
+    return cert.selfSigned ? 'Self-signed' : 'No issuer certificate in file';
+  }
+
+  function findingCounts(certs) {
+    return certs.reduce(function (acc, cert) {
+      (cert.findings || []).forEach(function (finding) {
+        acc[finding.severity] = (acc[finding.severity] || 0) + 1;
+      });
+      return acc;
+    }, {});
+  }
+
+  function renderChainSummary(certs) {
+    if (certs.length < 2) return '';
+    var counts = findingCounts(certs);
+    var countText = (counts.error || 0) + ' errors / ' + (counts.warning || 0) + ' warnings / ' + (counts.info || 0) + ' info';
+    var rows = certs.map(function (cert, index) {
+      var next = certs[index + 1];
+      var ca = cert.isCA ? 'Yes' : 'No';
+      var keyCertSign = cert.keyUsage && cert.keyUsage.indexOf('keyCertSign') >= 0 ? 'Yes' : 'No';
+      return '<div class="chain-row">'
+        + '<div class="chain-index">' + esc(index + 1) + '</div>'
+        + '<div class="chain-main"><div><strong>' + esc(cert.displayName) + '</strong> <span class="chain-role">' + esc(chainRole(cert, index)) + '</span></div>'
+        + '<div class="chain-sub">Subject: ' + esc(principalLabel(cert.subject)) + '</div>'
+        + '<div class="chain-sub">Issuer: ' + esc(principalLabel(cert.issuer)) + '</div></div>'
+        + '<div class="chain-meta"><span class="chain-status ' + esc(cert.status) + '">' + esc(cert.relExpiry) + '</span>'
+        + '<span>CA: ' + esc(ca) + '</span><span>keyCertSign: ' + esc(keyCertSign) + '</span>'
+        + '<span>' + esc(chainRelationship(cert, next)) + '</span></div>'
+        + '</div>';
+    }).join('');
+
+    return '<section class="chain-summary" aria-label="Certificate chain summary">'
+      + '<div class="chain-head"><div><h2>Certificate Chain Summary</h2><p>' + esc(certs.length) + ' certificates · ' + esc(countText) + '</p></div>'
+      + '<span class="chain-note">Local structural checks only</span></div>'
+      + rows
+      + '</section>';
+  }
+
   // ── Certificate view ────────────────────────────────────────────────────────
 
   function renderCerts(certs, warningDays, targetId) {
-    var active = 0;
+    var active = numberInRange(state.activeCertificateTab, 0, certs.length - 1, 0);
     targetId = targetId || 'app';
 
     function banner(c) {
@@ -212,8 +302,12 @@
       var panels = certs.map(function (c, i) {
         return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCert(c) + '</div>';
       }).join('');
-      document.getElementById(targetId).innerHTML = tabs + panels;
-      wireActions(targetId, function (button) { active = parseInt(button.dataset.i, 10); render(); });
+      setReviewedHtml(targetId, renderChainSummary(certs) + tabs + panels);
+      wireActions(targetId, function (button) {
+        active = numberInRange(button.dataset.i, 0, certs.length - 1, active);
+        saveState({ activeCertificateTab: active });
+        render();
+      });
     }
 
     render();
@@ -247,7 +341,7 @@
       var panels = csrs.map(function (c, i) {
         return '<div class="panel' + (i === active ? ' active' : '') + '" data-p="' + i + '">' + renderCsr(c) + '</div>';
       }).join('');
-      document.getElementById('app').innerHTML = tabsHtml + panels;
+      setReviewedHtml('app', tabsHtml + panels);
       wireActions('app', function (button) { active = parseInt(button.dataset.i, 10); render(); });
     }
 
@@ -268,7 +362,7 @@
         + (data.fingerprints ? fpRow('cert.fingerprint.sha1', 'SHA-1', data.fingerprints.sha1) + fpRow('cert.fingerprint.sha256', 'SHA-256', data.fingerprints.sha256) : '')
         + (data.revokedCount >= 0 ? row('crl.revokedEntries', 'Revoked Entries', String(data.revokedCount)) : ''))
       + '<button class="link-btn" data-action="openRaw">Open raw \u2197</button>';
-    document.getElementById('app').innerHTML = html;
+    setReviewedHtml('app', html);
     wireActions('app');
   }
 
@@ -284,7 +378,7 @@
           + (k.spkiFingerprints ? section('Fingerprints', fpRow('key.spki.sha1', 'SPKI SHA-1', k.spkiFingerprints.sha1) + fpRow('key.spki.sha256', 'SPKI SHA-256', k.spkiFingerprints.sha256)) : '')
           + row('key.publicKeyPem', 'Public Key PEM', k.publicKeyPem));
     }).join('');
-    document.getElementById(targetId).innerHTML = html;
+    setReviewedHtml(targetId, html);
     wireActions(targetId);
   }
 
@@ -311,7 +405,7 @@
   }
 
   function renderBundle(data) {
-    document.getElementById('app').innerHTML = '<h2>Certificates</h2><div id="certBundle"></div><h2>Keys</h2><div id="keyBundle"></div>';
+    setReviewedHtml('app', '<h2>Certificates</h2><div id="certBundle"></div><h2>Keys</h2><div id="keyBundle"></div>');
     renderCerts(data.certs, data.warningDays, 'certBundle');
     renderKeys(data.keys, 'keyBundle');
   }
@@ -319,10 +413,9 @@
   // ── Error view ───────────────────────────────────────────────────────────────
 
   function renderError(message, detail) {
-    document.getElementById('app').innerHTML =
-      '<div class="error-card"><div class="error-title">' + esc(message) + '</div>'
+    setReviewedHtml('app', '<div class="error-card"><div class="error-title">' + esc(message) + '</div>'
       + (detail ? '<pre class="error-detail">' + esc(detail) + '</pre>' : '')
-      + '</div>';
+      + '</div>');
   }
 
   // ── Dispatch ─────────────────────────────────────────────────────────────────

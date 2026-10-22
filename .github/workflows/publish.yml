@@ -12,15 +12,17 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 9.15.9
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "pnpm"
@@ -34,26 +36,47 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Audit Marketplace readiness
+        run: pnpm marketplace:audit
+
       - name: Unit Tests (no Electron)
         run: node ./out/test/unit/index.js
 
       - name: Integration Tests (Electron)
         run: xvfb-run -a pnpm test
 
+      - name: Package VSIX
+        run: pnpm package
+
+      - name: Audit VSIX contents
+        run: pnpm package:audit
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: certview-vsix
+          path: certview-*.vsix
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
     name: Publish to Marketplace
     needs: build
     runs-on: ubuntu-latest
+    environment: marketplace
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6.0.9
         with:
           version: 9.15.9
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "pnpm"
@@ -61,9 +84,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Package VSIX
+        run: pnpm package
+
+      - name: Audit VSIX contents
+        run: pnpm package:audit
+
+      - name: Sign in to Microsoft Entra
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
       - name: Publish
         run: |
-          if output=$(npx --yes @vscode/vsce publish --no-dependencies 2>&1); then
+          if output=$(pnpm exec vsce publish --azure-credential --no-dependencies 2>&1); then
             echo "$output"
           else
             echo "$output"
@@ -72,5 +108,3 @@ jobs:
             fi
             echo "Version already published — skipping."
           fi
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}

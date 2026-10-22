@@ -6,21 +6,48 @@ import { parsePkcs12, Pkcs12PasswordError } from "../parsers/pkcs12Parser";
 import { buildWebviewHtml } from "../views/certWebview";
 import { MAX_INPUT_BYTES } from "../parsers/limits";
 import { CertDiagnosticsProvider } from "./certDiagnostics";
+import { ParsedDocumentCache } from "../parsers/parsedDocumentCache";
+import { SuccessfulViewListener } from "./ratingPromptController";
 
 export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
   public static readonly viewType = "certview.certEditor";
+  public static readonly keyViewType = "certview.keyEditor";
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly diagnosticsProvider?: CertDiagnosticsProvider) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly diagnosticsProvider?: CertDiagnosticsProvider,
+    private readonly parsedDocumentCache?: ParsedDocumentCache,
+    private readonly onSuccessfulView?: SuccessfulViewListener
+  ) {}
 
-  public static register(context: vscode.ExtensionContext, diagnosticsProvider?: CertDiagnosticsProvider): vscode.Disposable {
-    return vscode.window.registerCustomEditorProvider(
-      CertEditorProvider.viewType,
-      new CertEditorProvider(context, diagnosticsProvider),
-      {
-        webviewOptions: { retainContextWhenHidden: true },
-        supportsMultipleEditorsPerDocument: false,
-      }
+  public static register(
+    context: vscode.ExtensionContext,
+    diagnosticsProvider?: CertDiagnosticsProvider,
+    parsedDocumentCache?: ParsedDocumentCache,
+    onSuccessfulView?: SuccessfulViewListener
+  ): vscode.Disposable {
+    const options = {
+      supportsMultipleEditorsPerDocument: false,
+    };
+    return vscode.Disposable.from(
+      vscode.window.registerCustomEditorProvider(
+        CertEditorProvider.viewType,
+        new CertEditorProvider(context, diagnosticsProvider, parsedDocumentCache, onSuccessfulView),
+        options
+      ),
+      vscode.window.registerCustomEditorProvider(
+        CertEditorProvider.keyViewType,
+        new CertEditorProvider(context, diagnosticsProvider, parsedDocumentCache, onSuccessfulView),
+        options
+      )
     );
+  }
+
+  public static viewTypeForUri(uri: vscode.Uri): string {
+    const ext = path.extname(uri.fsPath).toLowerCase();
+    return [".key", ".pub", ".jwk"].includes(ext)
+      ? CertEditorProvider.keyViewType
+      : CertEditorProvider.viewType;
   }
 
   async openCustomDocument(
@@ -36,7 +63,10 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
-    webviewPanel.webview.options = { enableScripts: true };
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
+    };
 
     const config = vscode.workspace.getConfiguration("certview");
     const warningDays: number = config.get("warningDaysBeforeExpiry", 30);
@@ -49,6 +79,9 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
       parsed,
       warningDays
     );
+    if (parsed.type !== "error") {
+      this.onSuccessfulView?.();
+    }
 
     webviewPanel.webview.onDidReceiveMessage(async (msg: { command: string; data?: string }) => {
       switch (msg.command) {
@@ -74,14 +107,18 @@ export class CertEditorProvider implements vscode.CustomReadonlyEditorProvider {
         detail: `File is ${stat.size} bytes; CertView limit is ${MAX_INPUT_BYTES} bytes to protect the VS Code extension host from unbounded parsing.`,
       };
     }
-    const raw = await vscode.workspace.fs.readFile(uri);
     const ext = path.extname(uri.fsPath).toLowerCase();
 
     if (ext === ".p12" || ext === ".pfx") {
+      const raw = await vscode.workspace.fs.readFile(uri);
       return this.parsePkcs12File(raw, uri.fsPath);
     }
 
-    return parseDocument(raw, uri.fsPath);
+    if (this.parsedDocumentCache) {
+      return await this.parsedDocumentCache.get(uri.toString(), uri.fsPath);
+    }
+
+    return parseDocument(await vscode.workspace.fs.readFile(uri), uri.fsPath);
   }
 
   private async parsePkcs12File(raw: Uint8Array, fsPath: string): Promise<ParsedDocument> {

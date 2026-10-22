@@ -5,6 +5,9 @@ import { getCertDisplayName } from "../utils/formatters";
 import { KeyInfo } from "../parsers/keyParser";
 import { parseDocument } from "../parsers/documentParser";
 import { MAX_INPUT_BYTES } from "../parsers/limits";
+import { ParsedDocumentCache } from "../parsers/parsedDocumentCache";
+import { CertEditorProvider } from "./certEditorProvider";
+import { buildWorkspaceExcludeGlob, limitWorkspaceScanResults, normalizeWorkspaceScanSettings, shouldRefreshWorkspaceUri, SUPPORTED_WORKSPACE_FILE_GLOB } from "./workspaceScan";
 
 type TreeItemType = "file" | "cert" | "key" | "field";
 
@@ -32,26 +35,44 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private fileWatcher: vscode.FileSystemWatcher | undefined;
+  private readonly configWatcher: vscode.Disposable;
 
-  constructor() {
+  constructor(private readonly parsedDocumentCache?: ParsedDocumentCache) {
     this.registerFileWatcher();
+    this.configWatcher = vscode.workspace.onDidChangeConfiguration(event => {
+      if (!event.affectsConfiguration("certview.workspace")) return;
+      this.registerFileWatcher();
+      this.refresh();
+    });
   }
 
   private registerFileWatcher(): void {
-    this.fileWatcher = vscode.workspace.createFileSystemWatcher(
-      "**/*.{pem,cer,crt,der,p7b,p7c,p7,crl,csr,p12,pfx,key,pub,jwk}"
-    );
-    this.fileWatcher.onDidCreate(() => this.refresh());
-    this.fileWatcher.onDidDelete(() => this.refresh());
-    this.fileWatcher.onDidChange(() => this.refresh());
+    this.fileWatcher?.dispose();
+    this.fileWatcher = undefined;
+
+    const scanSettings = this.getWorkspaceScanSettings();
+    if (!scanSettings.autoRefresh) return;
+
+    this.fileWatcher = vscode.workspace.createFileSystemWatcher(SUPPORTED_WORKSPACE_FILE_GLOB);
+    this.fileWatcher.onDidCreate(uri => this.refreshUri(uri));
+    this.fileWatcher.onDidDelete(uri => this.refreshUri(uri));
+    this.fileWatcher.onDidChange(uri => this.refreshUri(uri));
   }
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 
+  private refreshUri(uri: vscode.Uri): void {
+    const scanSettings = this.getWorkspaceScanSettings();
+    if (!shouldRefreshWorkspaceUri(vscode.workspace.asRelativePath(uri, false), scanSettings.excludeGlobs)) return;
+    this.parsedDocumentCache?.invalidate(uri.toString());
+    this.refresh();
+  }
+
   dispose(): void {
     this.fileWatcher?.dispose();
+    this.configWatcher.dispose();
     this._onDidChangeTreeData.dispose();
   }
 
@@ -80,12 +101,15 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
   }
 
   private async getCertFiles(): Promise<CertTreeItem[]> {
-    const uris = await vscode.workspace.findFiles(
-      "**/*.{pem,cer,crt,der,p7b,p7c,p7,crl,csr,p12,pfx,key,pub,jwk}",
-      "**/node_modules/**"
+    const scanSettings = this.getWorkspaceScanSettings();
+    const foundUris = await vscode.workspace.findFiles(
+      SUPPORTED_WORKSPACE_FILE_GLOB,
+      buildWorkspaceExcludeGlob(scanSettings.excludeGlobs),
+      scanSettings.maxFiles + 1
     );
+    const { files: uris, limitReached } = limitWorkspaceScanResults(foundUris, scanSettings.maxFiles);
 
-    return uris
+    const items = uris
       .sort((a, b) => a.fsPath.localeCompare(b.fsPath))
       .map(uri => {
         const item = new CertTreeItem(
@@ -98,13 +122,35 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
           {
             command: "vscode.openWith",
             title: "Open Certificate",
-            arguments: [uri, "certview.certEditor"],
+            arguments: [uri, CertEditorProvider.viewTypeForUri(uri)],
           }
         );
         item.tooltip = uri.fsPath;
         item.iconPath = new vscode.ThemeIcon("file");
         return item;
       });
+
+    if (limitReached) {
+      const item = new CertTreeItem(
+        `Workspace scan limited to ${scanSettings.maxFiles} files`,
+        vscode.TreeItemCollapsibleState.None,
+        "field"
+      );
+      item.iconPath = new vscode.ThemeIcon("warning");
+      item.tooltip = "Adjust certview.workspace.maxFiles or certview.workspace.excludeGlobs to control the Certificates explorer scan.";
+      items.push(item);
+    }
+
+    return items;
+  }
+
+  private getWorkspaceScanSettings(): ReturnType<typeof normalizeWorkspaceScanSettings> {
+    const workspaceConfig = vscode.workspace.getConfiguration("certview.workspace");
+    return normalizeWorkspaceScanSettings({
+      maxFiles: workspaceConfig.get("maxFiles"),
+      excludeGlobs: workspaceConfig.get("excludeGlobs"),
+      autoRefresh: workspaceConfig.get("autoRefresh"),
+    });
   }
 
   private async getCertsFromFile(uri: vscode.Uri): Promise<CertTreeItem[]> {
@@ -124,8 +170,9 @@ export class CertTreeProvider implements vscode.TreeDataProvider<CertTreeItem> {
         item.tooltip = `CertView limit is ${MAX_INPUT_BYTES} bytes.`;
         return [item];
       }
-      const raw = await vscode.workspace.fs.readFile(uri);
-      const parsed = parseDocument(raw, uri.fsPath);
+      const parsed = this.parsedDocumentCache
+        ? await this.parsedDocumentCache.get(uri.toString(), uri.fsPath)
+        : parseDocument(await vscode.workspace.fs.readFile(uri), uri.fsPath);
 
       if (parsed.type === "crl") {
         const item = new CertTreeItem("Revocation List", vscode.TreeItemCollapsibleState.None, "field");

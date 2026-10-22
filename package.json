@@ -1,26 +1,62 @@
 {
   "name": "certview",
-  "displayName": "X509 Certificate Utility",
-  "description": "A developer tool for inspecting X509 certificate files.",
-  "version": "0.3.5",
+  "displayName": "CertView: X.509 Certificate Inspector",
+  "description": "Inspect X.509 certificates, PEM, DER, CSR, CRL, PKCS#7, PKCS#12/PFX, JWK, and key files locally in VS Code: expiry, SANs, fingerprints, chains, and lint checks. Offline, with no telemetry.",
+  "version": "0.5.2",
   "publisher": "gmm",
   "license": "MIT",
+  "packageManager": "pnpm@9.15.9",
   "repository": {
     "type": "git",
     "url": "https://github.com/JuanTorchia/certificate-viewer-open-vscode.git"
   },
+  "bugs": {
+    "url": "https://github.com/JuanTorchia/certificate-viewer-open-vscode/issues"
+  },
+  "homepage": "https://gmmhub.net/products/certview-vscode",
   "engines": {
     "vscode": "^1.85.0"
   },
   "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#2C3E50",
+    "theme": "dark"
+  },
   "categories": [
-    "Other",
-    "Visualization"
+    "Visualization",
+    "Linters"
   ],
   "keywords": [
-    "utility",
+    "x509",
+    "certificate",
     "certificates",
-    "devtools"
+    "tls",
+    "ssl",
+    "pki",
+    "pem",
+    "csr",
+    "crl",
+    "pkcs12",
+    "pfx",
+    "p7b",
+    "pkcs7",
+    "der",
+    "jwk",
+    "offline",
+    "no-telemetry",
+    "certificate-viewer",
+    "openssl",
+    "security",
+    "devtools",
+    "p12",
+    "keystore",
+    "certificate-chain",
+    "expiry",
+    "expiration",
+    "fingerprint",
+    "pkcs10",
+    "pkcs8",
+    "lint"
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
@@ -74,7 +110,14 @@
           },
           {
             "filenamePattern": "*.pfx"
-          },
+          }
+        ],
+        "priority": "default"
+      },
+      {
+        "viewType": "certview.keyEditor",
+        "displayName": "Key Viewer",
+        "selector": [
           {
             "filenamePattern": "*.key"
           },
@@ -85,7 +128,7 @@
             "filenamePattern": "*.jwk"
           }
         ],
-        "priority": "default"
+        "priority": "option"
       }
     ],
     "views": {
@@ -156,37 +199,85 @@
           ],
           "default": "summary",
           "description": "Default view when opening a certificate"
+        },
+        "certview.workspace.maxFiles": {
+          "type": "number",
+          "default": 200,
+          "minimum": 1,
+          "description": "Maximum number of certificate-related files to show in the Certificates explorer. CertView asks VS Code for one extra result to detect when the scan was limited."
+        },
+        "certview.workspace.excludeGlobs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional VS Code glob patterns to exclude from the Certificates explorer scan. Use forward slashes in globs, for example **/dist/** or **/vendor/**."
+        },
+        "certview.workspace.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh the Certificates explorer when supported certificate-related files change. Disable this in very large workspaces and use the manual refresh command instead."
+        },
+        "certview.ratingPrompt.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Occasionally ask for a Marketplace rating after regular use.",
+          "markdownDescription": "Occasionally ask for a VS Code Marketplace rating after regular use (at most twice, never in the first session). Only shown in Microsoft VS Code."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "pnpm bundle",
-    "bundle": "node esbuild.js && node -e \"require('fs').cpSync('src/test/fixtures','out/test/fixtures',{recursive:true,force:true})\"",
+    "vscode:prepublish": "npm run bundle",
+    "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
+    "bundle": "npm run clean && node esbuild.js",
     "compile": "tsc -p ./ && node -e \"require('fs').cpSync('src/test/fixtures','out/test/fixtures',{recursive:true,force:true})\"",
     "watch": "tsc -watch -p ./",
-    "pretest": "pnpm compile",
-    "test:unit": "pnpm compile && node ./out/test/unit/index.js",
+    "pretest": "npm run compile",
+    "test:unit": "npm run compile && node ./out/test/unit/index.js",
     "test": "node ./out/test/runTest.js",
     "fixtures:local": "node scripts/generate-local-fixtures.js",
+    "demo:gif": "node scripts/generate-demo-gif.cjs",
     "lint": "eslint src --ext ts",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "package:contents": "vsce ls --no-dependencies",
+    "package:audit": "node scripts/audit-vsix-contents.js",
+    "marketplace:audit": "node scripts/audit-marketplace-readiness.js",
+    "package:ci": "npm run marketplace:audit && npm run package && npm run package:audit"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
     "@types/node-forge": "^1.3.14",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "@vscode/test-electron": "^2.3.8",
-    "@vscode/vsce": "^3.7.1",
-    "esbuild": "^0.28.0",
-    "eslint": "^8.56.0",
-    "mocha": "^10.2.0",
-    "typescript": "^5.3.3"
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.11.0",
+    "mocha": "^11.7.6",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "node-forge": "^1.4.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion": "5.0.12",
+      "diff": "9.0.0",
+      "fast-uri": "4.2.1",
+      "form-data": "4.0.6",
+      "js-yaml": "4.3.2",
+      "linkify-it": "5.0.2",
+      "markdown-it": "14.3.2",
+      "qs": "6.16.0",
+      "serialize-javascript": "7.0.7",
+      "tmp": "0.2.7",
+      "undici": "8.11.2",
+      "uuid": "14.0.1"
+    }
   }
 }
