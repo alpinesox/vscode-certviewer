@@ -2,7 +2,7 @@
   "name": "certview",
   "displayName": "CertView: X.509 Certificate Inspector",
   "description": "Inspect X.509 certificates, PEM, DER, CSR, CRL, PKCS#7, PKCS#12/PFX, JWK, and key files locally in VS Code: expiry, SANs, fingerprints, chains, and lint checks. Offline, with no telemetry.",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publisher": "gmm",
   "license": "MIT",
   "packageManager": "pnpm@9.15.9",
@@ -14,6 +14,9 @@
     "url": "https://github.com/JuanTorchia/certificate-viewer-open-vscode/issues"
   },
   "homepage": "https://gmmhub.net/products/certview-vscode",
+  "sponsor": {
+    "url": "https://github.com/sponsors/JuanTorchia"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -180,25 +183,10 @@
     "configuration": {
       "title": "CertView",
       "properties": {
-        "certview.showExpiredWarning": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show warnings for expired certificates"
-        },
         "certview.warningDaysBeforeExpiry": {
           "type": "number",
           "default": 30,
-          "description": "Number of days before expiry to show warning"
-        },
-        "certview.defaultView": {
-          "type": "string",
-          "enum": [
-            "summary",
-            "details",
-            "raw"
-          ],
-          "default": "summary",
-          "description": "Default view when opening a certificate"
+          "description": "Number of days before expiry to show the warning banner and the \"Expires in Nd\" label in the Certificates explorer"
         },
         "certview.workspace.maxFiles": {
           "type": "number",
@@ -252,13 +240,13 @@
     "@types/node": "18.x",
     "@types/node-forge": "^1.3.14",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^8.70.1",
-    "@typescript-eslint/parser": "^8.70.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
     "@vscode/test-electron": "^3.1.0",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
-    "eslint": "^10.11.0",
-    "mocha": "^11.7.6",
+    "eslint": "^10.12.0",
+    "mocha": "^12.0.3",
     "typescript": "^6.0.3"
   },
   "dependencies": {
@@ -273,7 +261,7 @@
       "form-data": "4.0.6",
       "js-yaml": "4.3.2",
       "linkify-it": "5.0.2",
-      "markdown-it": "14.3.2",
+      "markdown-it": "14.3.3",
       "qs": "6.16.0",
       "serialize-javascript": "7.0.7",
       "tmp": "0.2.7",
