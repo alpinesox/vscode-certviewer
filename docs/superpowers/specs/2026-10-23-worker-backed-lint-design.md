@@ -11,7 +11,7 @@ Keep all product linting off VS Code's extension-host thread while preserving th
 - Add one persistent Node worker for parsing and linting requests.
 - Route extension-host parsing paths through the worker, including cached file reads and live text diagnostics.
 - Move the current lint rules, including the existing bounded P-384 scalar check, into the worker's execution path without changing their behavior.
-- Bundle the worker as `out/workers/lintWorker.js` and terminate it during extension deactivation.
+- Bundle the worker as `out/workers/lintWorker.js`, explicitly include it in the VSIX, require it in the packaging audit, and terminate it during extension deactivation.
 - Preserve the existing parsed-document result shape and diagnostic/webview behavior.
 
 ### MR 2: Additional key checks
@@ -34,6 +34,7 @@ Private key bytes cross only the local worker-thread boundary for parsing; they 
 - `CertEditorProvider`, `CertTreeProvider`, and disk-backed diagnostics use the worker through the shared cache.
 - Live text diagnostics send their current text bytes directly to the same worker and discard stale responses.
 - The worker entry point is bundled alongside the extension and is also emitted at the same path by TypeScript compilation for integration tests.
+- `.vscodeignore` allows the worker bundle into the VSIX, and `scripts/audit-vsix-contents.js` verifies both `out/extension.js` and `out/workers/lintWorker.js` are packaged.
 - Worker lifecycle is owned by extension activation/deactivation; all pending requests must settle on worker failure or disposal.
 
 ## Validation
