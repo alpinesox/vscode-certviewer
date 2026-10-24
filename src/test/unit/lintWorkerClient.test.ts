@@ -32,4 +32,19 @@ suite("LintWorkerClient", () => {
     client.dispose();
     await assert.rejects(pending, /disposed/i);
   });
+
+  test("parses extracted certificate PEMs in the worker", async () => {
+    const client = new LintWorkerClient(WORKER_PATH);
+    try {
+      const pem = fs.readFileSync(CERTIFICATE_PATH, "utf8");
+      const result = await client.parseCertificates([pem], "bundle.p12");
+
+      assert.strictEqual(result.type, "certificates");
+      if (result.type !== "certificates") throw new Error("Expected a certificate document");
+      assert.strictEqual(result.items[0].subject.commonName, "self-signed.example.com");
+      assert.ok(Array.isArray(result.items[0].findings));
+    } finally {
+      client.dispose();
+    }
+  });
 });

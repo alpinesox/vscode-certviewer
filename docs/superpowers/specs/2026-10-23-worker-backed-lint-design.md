@@ -35,7 +35,7 @@ Private key bytes cross only the local worker-thread boundary for parsing; they 
 ## Integration
 
 - `ParsedDocumentCache` accepts an asynchronous parser dependency and awaits it.
-- `CertEditorProvider`, `CertTreeProvider`, and disk-backed diagnostics use the worker through the shared cache.
+- `CertEditorProvider`, `CertTreeProvider`, and diagnostics receive the worker client; disk-backed reads use the shared cache, and any uncached parse uses the worker directly.
 - Live text diagnostics send their current text bytes directly to the same worker and discard stale responses.
 - `CertEditorProvider` keeps the PKCS#12 password prompt and extraction flow on the host, then sends only extracted public certificate PEMs to the worker.
 - `pkcs12Parser.ts` exposes an extraction-only PEM helper; the existing synchronous `parsePkcs12` function remains a wrapper for direct parser tests.
